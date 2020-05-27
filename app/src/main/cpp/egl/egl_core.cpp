@@ -2,7 +2,7 @@
 // Created by Macro on 2019-12-02.
 //
 
-#include <egl_share_context.h>
+//#include <egl_share_context.h>
 #include <GLES3/gl3.h>
 #include "egl_core.h"
 #define LOG_TAG "EglCore"
@@ -124,12 +124,12 @@ bool EglCore::init() {
 }
 
 bool EglCore::initWithSharedContext() {
-
-    EGLContext context = EglShareContext::getShareContext();
-    if(context==EGL_NO_CONTEXT){
-        return false;
-    }
-    return init(context);
+//
+//    EGLContext context = EglShareContext::getShareContext();
+//    if(context==EGL_NO_CONTEXT){
+//        return false;
+//    }
+//    return init(context);
 }
 
 

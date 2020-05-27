@@ -31,3 +31,24 @@ void JJMediaPlayer::message_loop() {
 void JJMediaPlayer::setJavaJJPlayerRef(void *ref){
         weak_this= ref;
 }
+
+
+void JJMediaPlayer::setNativieSurface(JNIEnv *env, jobject surface) {
+        if(NULL!=jjplayer){
+                jjplayer->setNativeSurface(env,surface);
+        }
+}
+
+
+/**
+ * 设置资源的路径
+ * @param env
+ * @param path
+ * @param keys
+ * @param values
+ */
+void JJMediaPlayer::setDataSource(JNIEnv *env, jstring path, jobjectArray keys,
+                                  jobjectArray values) {
+    sourcePath=env->GetStringUTFChars(path,NULL);
+}
+

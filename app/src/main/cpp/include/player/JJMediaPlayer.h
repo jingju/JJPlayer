@@ -7,6 +7,7 @@
 
 
 #include <thread>
+#include <jni.h>
 #include "JJPlayer.h"
 
 //todo 定义消息队列中消息的各种状态
@@ -22,15 +23,19 @@ private:
     //消息循环线程
     JJPlayer *jjplayer;//播放器类
     std::mutex mutex;
+    const char *sourcePath;
+
     void* weak_this;//java 类JJMediaPlayer的引用
 
 public:
 
     static void message_loop();
+
+    void setNativieSurface(JNIEnv *env,jobject surface);
     /**
      * 设置资源放来源
      */
-    void setDataSource();
+    void setDataSource(JNIEnv *env,jstring path, jobjectArray keys, jobjectArray values);
 
     //准备阶段
     void prepareAsync();

@@ -5,6 +5,20 @@
 #include <player/JJPlayer.h>
 #include <player/JJMediaPlayer.h>
 
+void JJPlayer::init(EglSurfaceRenderController &controler) {
+
+}
+
+/**
+ * 创建window
+ * @param env
+ * @param surface
+ */
+void JJPlayer::setNativeSurface(JNIEnv *env, jobject surface) {
+        if(NULL==_window){
+            _window=ANativeWindow_fromSurface(env,surface);
+        }
+}
 
 void JJPlayer::prepareAsync() {
 

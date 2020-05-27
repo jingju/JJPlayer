@@ -11,6 +11,10 @@
 #include <AVSyncronizer.h>
 #include "MessageQueue.h"
 
+#include <EglSurfaceRenderController.h>
+#include <jni.h>
+#include <android/native_window_jni.h>
+
 class JJPlayer {
 
 private:
@@ -20,12 +24,17 @@ private:
     //音视频的同步来的类
     AVSyncronizer * syncronizer;
 
+    EglSurfaceRenderController renderControler;
+
+    ANativeWindow *_window;
+
 public:
     //todo 相关的初始化操作
     /**
      *
      */
-    void init();
+    void init(EglSurfaceRenderController &controler);
+    void setNativeSurface(JNIEnv *env,jobject surface);
     void changState(int stateCode);
     //player 的prepareAsync方法。
     void prepareAsync();

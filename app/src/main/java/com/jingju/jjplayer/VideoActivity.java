@@ -1,18 +1,16 @@
 package com.jingju.jjplayer;
 import android.os.Bundle;
-import android.view.Surface;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
-import android.view.View;
 import android.widget.MediaController;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.jingju.jjplayer.view.JJVideoView;
+
 public class VideoActivity extends AppCompatActivity {
 
-    private String mVideoPath;
     private MediaController  mMediaController;//todo 媒体控制器
-    private SurfaceView mShowView;
+    private JJVideoView mVideoView;
+    private String uri ="http://devimages.apple.com.edgekey.net/streaming/examples/bipbop_4x3/bipbop_4x3_variant.m3u8";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -22,33 +20,16 @@ public class VideoActivity extends AppCompatActivity {
          * VideoView
          *      player 和 controler相关
          */
-        mShowView = findViewById(R.id.sf_show);
+
+        // TODO: 2020/5/21 封装一个播放器的view
+
+        mVideoView = findViewById(R.id.video_view);
         // TODO: 2020/5/11 获取到video path
-
-        videoview (player )
-
+//        mVideoView.setVideoUri(uri);
 
 
-        mShowView.getHolder().addCallback(new SurfaceHolder.Callback() {
-            @Override
-            public void surfaceCreated(SurfaceHolder holder) {
-                Surface surface = holder.getSurface();
-                // TODO: 2020/5/16 设置给jni层，创建window相关数据
 
 
-            }
-
-            @Override
-            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-
-
-            }
-
-            @Override
-            public void surfaceDestroyed(SurfaceHolder holder) {
-
-            }
-        });
 
 
 
