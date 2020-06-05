@@ -36,15 +36,15 @@ struct AVMessage{
 class MessageQueue {
     std::mutex m;
     std::condition_variable condition;
-    std::queue<std::shared_ptr<AVMessage>> q;
+    std::queue<AVMessage *> q;
 public:
-    void push(AVMessage const &msg) {
+    void push(AVMessage * message) {
         std::lock_guard<std::mutex> lk(m);
-        q.push(std::make_shared<AVMessage>(msg));
+        q.push(message);
         condition.notify_all();
     }
 
-    std::shared_ptr<AVMessage> wait_and_pop() {
+    AVMessage * wait_and_pop() {
         std::unique_lock<std::mutex> lk(m);
         condition.wait(lk, [&] { return !q.empty(); });
         auto res = q.front();

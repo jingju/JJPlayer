@@ -295,9 +295,6 @@ public class JJVideoView extends FrameLayout implements MediaController.MediaPla
             // TODO: 2020-02-24 创建播放器
 //            mMediaPlayer = createPlayer(mSettings.getPlayer());
             mMediaPlayer = createPlayer();
-            // 暂时写死，创建固定的player
-            mMediaPlayer =  new JJMediaPlayer();
-
             // TODO: create SubtitleController in MediaPlayer, but we need
             // a context for the subtitle renderers
             final Context context = getContext();
@@ -321,9 +318,9 @@ public class JJVideoView extends FrameLayout implements MediaController.MediaPla
 //                    mSettings.getUsingMediaDataSource() &&
 //                    (TextUtils.isEmpty(scheme) || scheme.equalsIgnoreCase("file"))) {
 //                IMediaDataSource dataSource = new FileMediaDataSource(new File(mUri.toString()));
-//                mMediaPlayer.setDataSource(dataSource);
+//                mMediaPlayer.setSourcePath(dataSource);
 //            }  else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
-//                mMediaPlayer.setDataSource(mAppContext, mUri, mHeaders);
+//                mMediaPlayer.setSourcePath(mAppContext, mUri, mHeaders);
 //            } else {
                 mMediaPlayer.setDataSource(mUri.toString());
 //            }
@@ -331,7 +328,7 @@ public class JJVideoView extends FrameLayout implements MediaController.MediaPla
             mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             mMediaPlayer.setScreenOnWhilePlaying(true);
             mPrepareStartTime = System.currentTimeMillis();// TODO: 2020-02-24 准备播放开始时间
-//            mMediaPlayer.prepareAsync();
+            mMediaPlayer.prepareAsync();
 //            if (mHudViewHolder != null)
 //                mHudViewHolder.setMediaPlayer(mMediaPlayer);
 

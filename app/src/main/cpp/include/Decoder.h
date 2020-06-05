@@ -2,10 +2,11 @@
 // Created by Macro on 2020-02-14.
 //
 
-#ifndef JJPLAYER_VIDEODECODER_H
-#define JJPLAYER_VIDEODECODER_H
+#ifndef JJPLAYER_DECODER_H
+#define JJPLAYER_DECODER_H
 
 #include <string>
+#include <thread>
 
 extern "C"{
 #include <libavformat/avformat.h>
@@ -13,8 +14,16 @@ extern "C"{
 #include <libavutil/imgutils.h>
 };
 
+//todo 最后不要忘了错误处理的时候，释放资源。
+/**
+ * todo  解码器
+ *
+ *  av_frame_free(&frame);
+    avcodec_free_context(&c);
+    av_packet_free(&pkt);
+ */
 using namespace std;
-class VideoDecoder {
+class Decoder {
 private:
 //    void* protocalParser;//解协议
 //    void* formatDemuxer;//解封装
@@ -33,28 +42,33 @@ private:
     enum AVPixelFormat pix_fmt;//图片的像素数据的格式
     uint8_t *video_dst_data[4] = {NULL};
     int      video_dst_linesize[4];
-    int video_dst_bufsize;
+    int video_dst_bufsize; //todo  一帧缓存的大小
     AVFrame *frame = NULL;
     AVPacket pkt;
-//    void* decoder;//解码
+//    void* mDecoder;//解码
+
+    thread mVideoThead;
+    thread mAudioThread;
 
 public:
-
-    int openFile(char *src_filename);
+    Decoder();
+    int openFile(const char *src_filename);
     void closeFile();
     bool isEOF();
-    int decodeFrame(float duration);
+    int decode();
 
 
     int interrupt_cb(void *ctx);
 
-    int  open_codec_context(int *stream_idx,
-                                  AVCodecContext **dec_ctx, AVFormatContext *fmt_ctx, enum AVMediaType type);
+    int  open_codec_context(AVCodecContext **dec_ctx,  AVStream * st ,AVMediaType type);
     int decode_packet(int *got_frame, int cached);
-    int decodeVideoPacket(int *got_frame,AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt);
+    int decodeVideoPacket(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt);
 
+    void videoThread();
+    void audioThread();
     void release();
+
 };
 
 
-#endif //JJPLAYER_VIDEODECODER_H
+#endif //JJPLAYER_DECODER_H

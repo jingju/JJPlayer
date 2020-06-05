@@ -10,6 +10,7 @@ import com.jingju.jjplayer.view.MediaInfo;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.Map;
 
 public class JJMediaPlayer implements IMediaPlayer{
@@ -20,11 +21,20 @@ public class JJMediaPlayer implements IMediaPlayer{
     private SurfaceHolder mSurfaceHolder;
     private String mDataSource;
 
+    public JJMediaPlayer() {
+        initPlayer();
+    }
+
+    private void initPlayer() {
+        // TODO: 2020/5/27 还有一些其它的初始化工作
+        setUp(new WeakReference<JJMediaPlayer>(this));
+    }
+
     public void nativeSetUp(){
 
     }
 
-    public native void  _setUp(Object JJMediaPlayer_this);
+    public native void setUp(Object JJMediaPlayer_this);
 
     @Override
     public void setDisplay(SurfaceHolder sh) {
@@ -35,7 +45,7 @@ public class JJMediaPlayer implements IMediaPlayer{
         } else {
             surface = null;
         }
-        _setVideoSurface(surface);
+        nSetVideoSurface(surface);
 //        updateSurfaceScreenOn();
     }
 
@@ -57,19 +67,20 @@ public class JJMediaPlayer implements IMediaPlayer{
     @Override
     public void setDataSource(String path) throws IOException, IllegalArgumentException, SecurityException, IllegalStateException {
         mDataSource = path;
-        _setDataSource(path, null, null);
+        nSetDataSource(path, null, null);
     }
 
-    private native void _setDataSource(String path,String[] keys,String[] values);
+    private native void nSetDataSource(String path,String[] keys,String[] values);
 
     @Override
     public String getDataSource() {
         return null;
     }
 
+    // TODO: 2020/5/27 开始前的一些准备工作
     @Override
     public void prepareAsync() throws IllegalStateException {
-
+        nPrepareAsync();
     }
 
     @Override
@@ -232,6 +243,9 @@ public class JJMediaPlayer implements IMediaPlayer{
 
     }
 
-    // TODO: 2020/5/26 底层创建opengl相关
-    public native void _setVideoSurface(Surface surface);
+    public native void nSetVideoSurface(Surface surface);
+
+    public native void nPrepareAsync();
+
+
 }

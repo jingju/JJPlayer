@@ -7,6 +7,7 @@
 
 
 #include <sys/types.h>
+#include <pthread.h>
 
 class AudioOutput {
 private:

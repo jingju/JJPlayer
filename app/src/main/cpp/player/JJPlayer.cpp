@@ -7,7 +7,14 @@
 
 void JJPlayer::init(EglSurfaceRenderController &controler) {
 
+
 }
+
+
+void JJPlayer::setSourcePath(const char *sourcePath) {
+    mSourPath=sourcePath;
+}
+
 
 /**
  * 创建window
@@ -15,82 +22,77 @@ void JJPlayer::init(EglSurfaceRenderController &controler) {
  * @param surface
  */
 void JJPlayer::setNativeSurface(JNIEnv *env, jobject surface) {
-        if(NULL==_window){
-            _window=ANativeWindow_fromSurface(env,surface);
-        }
+    if (NULL == _window) {
+        _window = ANativeWindow_fromSurface(env, surface);
+    }
 }
 
 void JJPlayer::prepareAsync() {
 
-
 }
-
 
 void JJPlayer::changState(int stateCode) {
-    AVMessage message;
-    message.what=MP_STATE_ASYNC_PREPARING;
-    messageQueue.push(message);//准备阶段的message
-
+    AVMessage *message = new AVMessage;
+    message->what = stateCode;
+    mMessageQueue.push(message);//准备阶段的message
 }
+
+
+AVMessage *JJPlayer::getMessage() {
+    return mMessageQueue.wait_and_pop();
+}
+
+
 /**
  * todo 准本播放
  */
 int JJPlayer::repareAsyncl() {
-    if(!videoOutput){
+    if (!videoOutput) {
         return -1;
     }
 
-    streamOpen("");
+    streamOpen();
 
     /**
      * todo 后面的一些操作待定
      */
 
-
     return 0;
 }
 
 /**
- * 打开多媒体流
+ * 解码前一些相关线程的初始化工作
  * @param fileName
  */
-void JJPlayer::streamOpen(char *fileName) {
-        /**
-         * todo 初始化 VideoState 类，记录player的一些状态
-         */
+void JJPlayer::streamOpen() {
+    /**
+     * todo 初始化 VideoState 类，记录player的一些状态
+     */
 
 
 
 
 
 
-        //=======================
-          //todo 一些播放器状态的判断
+    //=======================
+    //todo 一些播放器状态的判断
 
 
 
-        //todo 初始化video audio 和 ext 实际时间的时钟
+    //todo 初始化video audio 和 ext 实际时间的时钟
 
 
 
-        //todo 相关声音的初始化，线程条件变量的初始化，精确的seek
+    //todo 相关声音的初始化，线程条件变量的初始化，精确的seek
 
 
-        //===================================
-            //todo 初始化视频刷新线程
-//            std::thread mVideoRefreshThread(videoRefreshThread);
-
-
-            //todo 读取线程的初始化
-
-            std::thread mReadThread(readThread);
-
-
-
-            //todo 初始化解码器
-//            decoder_init()
-
-
+    //===================================
+    //todo 初始化视频刷新线程
+    mVideoRefreshThread = std::thread(&JJPlayer::videoRefreshThread, this);
+    //todo 初始化解码器
+    decoder_init();
+    //todo 流数据的读取，解码
+    mReadThread = std::thread(&JJPlayer::readThread, this);
 }
 
 /**
@@ -98,7 +100,7 @@ void JJPlayer::streamOpen(char *fileName) {
  */
 int JJPlayer::videoRefreshThread() {
 
-
+    return 0;
 }
 
 
@@ -118,6 +120,11 @@ int JJPlayer::readThread() {
      *
      *      AVFormateContext的申请
      */
+
+    mDecoder->openFile(mSourPath);
+
+
+
 //==========================
     //todo 从packet queue 中读取数据，解码后，存到对应的frame queue以供后续使用
 //    if(st_index[AVMEDIA_TYPE_VIDEO])
@@ -133,7 +140,7 @@ int JJPlayer::readThread() {
     //todo 循环将读取到的packet 缓存到packet queue
 
 
-
+    return 0;
 }
 
 /**
@@ -146,23 +153,22 @@ int JJPlayer::streamComponentOpen() {
 //        audio_open
 
 
-    //todo 初始化音频解码器，解码
-    std::thread mAudioThread(audioThread);
+//    //todo 初始化音频解码器，解码
+//    std::thread mAudioThread(audioThread);
+//
+//
+//
+//
+//    //todo 初始化视频解码器，解码
+//    std::thread mVideoThread(videoThread);
+//
+//
+//
+//    //todo 初始化字幕解码器，解码
+//
+//    std::thread mSubtitleThread(subtitleThread);
 
-
-
-
-    //todo 初始化视频解码器，解码
-    std::thread mVideoThread(videoThread);
-
-
-
-    //todo 初始化字幕解码器，解码
-
-    std::thread mSubtitleThread(subtitleThread);
-
-
-
+    return 0;
 }
 
 /**
@@ -173,7 +179,7 @@ int JJPlayer::audioThread() {
     //todo 解码，解码成功后，
 
     // 将AVFrame 放到队列里面
-
+    return 0;
 }
 
 /**
@@ -182,7 +188,7 @@ int JJPlayer::audioThread() {
  */
 int JJPlayer::videoThread() {
 
-
+    return 0;
 }
 
 /**
@@ -191,6 +197,10 @@ int JJPlayer::videoThread() {
  */
 int JJPlayer::subtitleThread() {
 
+    return 0;
+}
 
-
+//todo 初始化解码器
+void JJPlayer::decoder_init() {
+        mDecoder=new Decoder;
 }

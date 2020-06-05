@@ -9,7 +9,7 @@
 #include <thread>
 #include <jni.h>
 #include "JJPlayer.h"
-
+#define LOG_TAG "JJMediaPlayer"
 //todo 定义消息队列中消息的各种状态
 /**
  * 准备阶段
@@ -23,13 +23,13 @@ private:
     //消息循环线程
     JJPlayer *jjplayer;//播放器类
     std::mutex mutex;
-    const char *sourcePath;
-
     void* weak_this;//java 类JJMediaPlayer的引用
+    std::thread mThreadMessageLoop;
 
 public:
 
-    static void message_loop();
+    JJMediaPlayer();
+    void message_loop();
 
     void setNativieSurface(JNIEnv *env,jobject surface);
     /**

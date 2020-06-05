@@ -7,7 +7,7 @@
 
 
 #include <sys/types.h>
-#include "VideoDecoder.h"
+#include "Decoder.h"
 #include "VideoFrameQueue.h"
 #include "AudioFrameQueue.h"
 #include "AudioFrame.h"
@@ -17,7 +17,7 @@
 using namespace std;
 class AVSyncronizer {
 private:
-    VideoDecoder videoDecoder;
+    Decoder videoDecoder;
     VideoFrameQueue videoFrameQueue;
     AudioFrameQueue audioFrameQueue;
     pthread_t decoderThread;
