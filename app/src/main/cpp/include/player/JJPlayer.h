@@ -11,24 +11,23 @@
 #include <AVSyncronizer.h>
 #include "MessageQueue.h"
 #include "CommonTools.h"
-#include <EglSurfaceRenderController.h>
 #include <jni.h>
 #include <android/native_window_jni.h>
 #include <thread>
+#include <videorender/VideoRenderController.h>
 
 class JJPlayer {
 
 private:
     MessageQueue mMessageQueue;
     Decoder * mDecoder;
+    VideoRenderController *mRenderController;
+    OpenSLESAudioController *mAudioController;
     const char * mSourPath;
     VideoOutput *videoOutput;
     AudioOutput *audioOutput;
     //音视频的同步来的类
     AVSyncronizer *syncronizer;
-
-    EglSurfaceRenderController renderControler;
-
     ANativeWindow *_window;
     std::thread mVideoRefreshThread;//视频的刷新线程
     std::thread mReadThread;//解码后的音视频帧的读取线程
@@ -38,7 +37,8 @@ public:
     /**
      *
      */
-    void init(EglSurfaceRenderController &controler);
+     ~JJPlayer();
+    void init();
 
     void setNativeSurface(JNIEnv *env, jobject surface);
 
@@ -66,7 +66,10 @@ public:
 
     int subtitleThread();
 
-    void decoder_init();
+    void initDecoder();
+    void initVideoRender();
+    void createAudioRender();
+
 };
 
 

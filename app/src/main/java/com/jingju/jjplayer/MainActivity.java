@@ -2,8 +2,12 @@ package com.jingju.jjplayer;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Context;
 import android.content.Intent;
+import android.media.AudioManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
@@ -40,6 +44,9 @@ public class MainActivity extends AppCompatActivity {
                 MainActivity.this.startActivity(intent);
             }
         });
+
+//        getBestSampleRate();
+
     }
 
     /**
@@ -47,4 +54,18 @@ public class MainActivity extends AppCompatActivity {
      * which is packaged with this application.
      */
     public native String stringFromJNI();
+
+
+    public int getBestSampleRate()
+    {
+        if (Build.VERSION.SDK_INT >= 17) {
+            AudioManager am = (AudioManager) this.getSystemService(Context.AUDIO_SERVICE);
+            String sampleRateString = am.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE);
+            int sampleRate = sampleRateString == null ? 44100 : Integer.parseInt(sampleRateString);
+            Log.d("samplerate","sampleRate=="+sampleRate);
+            return sampleRate;
+        } else {
+            return 44100;
+        }
+    }
 }

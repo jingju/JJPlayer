@@ -258,7 +258,16 @@ public class JJVideoView extends FrameLayout implements MediaController.MediaPla
 
     //todo player 和 holder 绑定，同时创建surface 相关
 
-    private void bindSurfaceHolder(IMediaPlayer mMediaPlayer, IRenderView.ISurfaceHolder holder) {
+    private void bindSurfaceHolder(IMediaPlayer mp, IRenderView.ISurfaceHolder holder) {
+        if (mp == null)
+            return;
+
+        if (holder == null) {
+            mp.setDisplay(null);
+            return;
+        }
+
+        holder.bindToMediaPlayer(mp);
     }
 
     public void setVideoPath(String path){
@@ -280,10 +289,10 @@ public class JJVideoView extends FrameLayout implements MediaController.MediaPla
      *
      */
     public void openVideo(){
-//        if (mUri == null || mSurfaceHolder == null) {
-//            // not ready for playback just yet, will try again later
-//            return;
-//        }
+        if (mUri == null || mSurfaceHolder == null) {
+            // not ready for playback just yet, will try again later
+            return;
+        }
 //        // we shouldn't clear the target state, because somebody might have
 //        // called start() previously
 //        release(false);

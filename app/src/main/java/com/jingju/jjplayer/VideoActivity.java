@@ -1,6 +1,8 @@
 package com.jingju.jjplayer;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.view.WindowManager;
 import android.widget.MediaController;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -23,6 +25,10 @@ public class VideoActivity extends AppCompatActivity implements PermissionCallba
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) { // 5.0+ 打开硬件加速
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED);
+        }
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_video);
         dispatcher = ActivityPermissionDispatcher.getInstance();
         dispatcher.setPermissionCallback(this,this);

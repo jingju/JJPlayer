@@ -13,6 +13,7 @@ EglCore::EglCore() {
     pfneglPresentationTimeANDROID=0;
     display=EGL_NO_DISPLAY;
     context=EGL_NO_CONTEXT;
+    init();
 }
 
 EglCore::~EglCore() {
@@ -55,15 +56,16 @@ EGLDisplay EglCore::getDisplay() {
 
 EGLSurface EglCore::creatWindowSurface(ANativeWindow *_window) {
     EGLSurface surface=NULL;
-    EGLint format;
+    EGLint format=0;
     if(!(eglGetConfigAttrib(display,config,EGL_NATIVE_VISUAL_ID,&format))){
         LOGI("eglGetConfigAttrib error %d",eglGetError());
         release();
         return surface;
     }
 
-
-    ANativeWindow_setBuffersGeometry(_window,0,0,format);
+    int32_t width  = ANativeWindow_getWidth(_window);
+    int32_t height = ANativeWindow_getHeight(_window);
+    int ret =ANativeWindow_setBuffersGeometry(_window,width,height,format);
 
     if(!(surface=eglCreateWindowSurface(display,config,_window,0))){
         LOGI("eglCreateWindowSurface error %d",eglGetError());
@@ -182,7 +184,7 @@ bool EglCore::init(EGLContext sharedContext) {
         return false;
     }
 
-    EGLint eglContextAttributes[] = { EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE };//属性列表传默认值
+    EGLint eglContextAttributes[] = { EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE };//属性列表传默认值
     if (!(context = eglCreateContext(display, config, NULL == sharedContext ? EGL_NO_CONTEXT : sharedContext, eglContextAttributes))) {
         LOGE("eglCreateContext() returned error %d", eglGetError());
         release();

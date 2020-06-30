@@ -5,8 +5,7 @@
 #include <player/JJPlayer.h>
 #include <player/JJMediaPlayer.h>
 
-void JJPlayer::init(EglSurfaceRenderController &controler) {
-
+void JJPlayer::init() {
 
 }
 
@@ -22,9 +21,7 @@ void JJPlayer::setSourcePath(const char *sourcePath) {
  * @param surface
  */
 void JJPlayer::setNativeSurface(JNIEnv *env, jobject surface) {
-    if (NULL == _window) {
         _window = ANativeWindow_fromSurface(env, surface);
-    }
 }
 
 void JJPlayer::prepareAsync() {
@@ -86,11 +83,12 @@ void JJPlayer::streamOpen() {
     //todo 相关声音的初始化，线程条件变量的初始化，精确的seek
 
 
+
     //===================================
     //todo 初始化视频刷新线程
     mVideoRefreshThread = std::thread(&JJPlayer::videoRefreshThread, this);
     //todo 初始化解码器
-    decoder_init();
+    initDecoder();
     //todo 流数据的读取，解码
     mReadThread = std::thread(&JJPlayer::readThread, this);
 }
@@ -99,6 +97,8 @@ void JJPlayer::streamOpen() {
  * todo 不断的从视频队列取消息，刷新到openGL上
  */
 int JJPlayer::videoRefreshThread() {
+    //todo 不断读取视频，并渲染播放
+
 
     return 0;
 }
@@ -120,8 +120,11 @@ int JJPlayer::readThread() {
      *
      *      AVFormateContext的申请
      */
+    //todo 初始化egl相关
 
-    mDecoder->openFile(mSourPath);
+    initVideoRender();
+    createAudioRender();
+    mDecoder->openFile(mSourPath,mRenderController,mAudioController);
 
 
 
@@ -200,7 +203,28 @@ int JJPlayer::subtitleThread() {
     return 0;
 }
 
-//todo 初始化解码器
-void JJPlayer::decoder_init() {
+
+void JJPlayer::initDecoder() {
         mDecoder=new Decoder;
+}
+
+/**
+ * 初始化视频的渲染类
+ */
+void JJPlayer::initVideoRender() {
+    mRenderController=new VideoRenderController;
+    mRenderController->initEGL(_window);
+    mRenderController->prepareRender();
+
+}
+
+void JJPlayer::createAudioRender() {
+    mAudioController= new OpenSLESAudioController;
+}
+
+
+
+JJPlayer::~JJPlayer() {
+    delete mDecoder;
+
 }

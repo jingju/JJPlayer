@@ -7,6 +7,13 @@
 
 #include <string>
 #include <thread>
+#include <videorender/VideoRenderController.h>
+#include <audiorender/AudioResampler.h>
+#include "audiorender/BaseAudioController.h"
+
+#include "audiorender/OpenSLESAudioController.h"
+#include "PlayState.h"
+#include "FrameQueue.h"
 
 extern "C"{
 #include <libavformat/avformat.h>
@@ -24,7 +31,10 @@ extern "C"{
  */
 using namespace std;
 class Decoder {
-private:
+public:
+    VideoRenderController *mRenderController;
+    OpenSLESAudioController *mAudioController;
+    AudioResampler *audioResampler;
 //    void* protocalParser;//解协议
 //    void* formatDemuxer;//解封装
 
@@ -46,13 +56,14 @@ private:
     AVFrame *frame = NULL;
     AVPacket pkt;
 //    void* mDecoder;//解码
-
     thread mVideoThead;
     thread mAudioThread;
+    FrameQueue *mVideoFrameQueue;
+    FrameQueue *mAudioFrameQueue;
 
 public:
     Decoder();
-    int openFile(const char *src_filename);
+    int openFile(const char *src_filename,VideoRenderController *controller,OpenSLESAudioController *audioController);
     void closeFile();
     bool isEOF();
     int decode();
@@ -60,13 +71,16 @@ public:
 
     int interrupt_cb(void *ctx);
 
-    int  open_codec_context(AVCodecContext **dec_ctx,  AVStream * st ,AVMediaType type);
+    int  open_codec_context(AVCodecContext *dec_ctx,  AVStream * st ,AVMediaType type);
     int decode_packet(int *got_frame, int cached);
     int decodeVideoPacket(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt);
 
     void videoThread();
     void audioThread();
     void release();
+
+    int openAudioController(int64_t wanted_channel_layout, int wanted_nb_channels,
+                             int wanted_sample_rate);
 
 };
 
