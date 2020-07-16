@@ -28,6 +28,10 @@ public:
         q.pop();
         return res;
     }
+
+    int getSize(){
+        return q.size();
+    }
 };
 
 

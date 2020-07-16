@@ -1,6 +1,6 @@
 #include <jni.h>
 #include <string>
-#include <player/JJMediaPlayer.h>
+#include "player/JJMediaPlayer.h"
 
 JJMediaPlayer *player;
 

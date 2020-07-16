@@ -7,29 +7,42 @@
 
 
 #include <sys/types.h>
-#include "Decoder.h"
 #include "VideoFrameQueue.h"
 #include "AudioFrameQueue.h"
 #include "AudioFrame.h"
 #include "VideoFrame.h"
+#include "Decoder.h"
 #include <string>
+#include "PlayerState.h"
+#define LOG_TAG "AVSyncronizer"
 
 using namespace std;
 class AVSyncronizer {
+    //todo 最后再换成重写后的decoder
 private:
-    Decoder videoDecoder;
-    VideoFrameQueue videoFrameQueue;
-    AudioFrameQueue audioFrameQueue;
-    pthread_t decoderThread;
+    PlayerState *mPlayerState= nullptr;
+    VideoRenderController *mRenderController= nullptr;
+    OpenSLESAudioController *mAudioController= nullptr;
 
-private:
-    void run();
+    std::thread mVideoRefreshThread;//视频的刷新线程
+    std::thread mReadThread;//解码后的音视频帧的读取线程
+
+    Decoder *mAudioDecoder;
+    Decoder *mVideoDecoder;
+    Decoder *mSubtitleDecoder;
+    //todo 时钟
+    int streamComponentOpen(PlayerState *playerState,AVMediaType type,int streamIndex);
+
 public:
-    //todo 参数准确性待确认
-    int start(string  uri);
-    AudioFrame getAudioFrame();
-    VideoFrame getCorrectVideoFrame();
-    void stop();
+    AVSyncronizer(PlayerState *playerState);
+    ~AVSyncronizer();
+    void initDecoder();
+    int readThread();
+    int videoRefreshThread();
+    void streamOpen();
+    void createAudioRender();
+    void initVideoRender();
+
 };
 
 

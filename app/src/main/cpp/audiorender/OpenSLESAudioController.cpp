@@ -2,6 +2,7 @@
 // Created by Macro on 2020/6/19.
 //
 
+#include <player/PlayerState.h>
 #include "audiorender/OpenSLESAudioController.h"
 
 // this callback handler is called every time a buffer finishes playing
@@ -453,3 +454,84 @@ SLuint32 OpenSLESAudioController::getSLSampleRate(int sampleRate) {
         }
     }
 }
+//带返回值就好了
+void audioPCMQueueCallback(void *opaque, uint8_t *stream, int len) {
+
+//    mediaPlayer->pcmQueueCallback(stream, len);
+    //todo 这里进行重新采样
+
+
+}
+
+//打开
+int OpenSLESAudioController::open(int64_t wanted_channel_layout, int wanted_nb_channels,
+                                  int wanted_sample_rate) {
+
+    AudioDeviceSpec wanted_spec, spec;
+    const int next_nb_channels[] = {0, 0, 1, 6, 2, 6, 4, 6};
+    const int next_sample_rates[] = {44100, 48000};
+    int next_sample_rate_idx = FF_ARRAY_ELEMS(next_sample_rates) - 1;//todo 采样率列表的size -1.
+    if (wanted_nb_channels != av_get_channel_layout_nb_channels(wanted_channel_layout)
+        || !wanted_channel_layout) {
+        wanted_channel_layout = av_get_default_channel_layout(wanted_nb_channels);
+        wanted_channel_layout &= ~AV_CH_LAYOUT_STEREO_DOWNMIX;
+    }
+    wanted_nb_channels = av_get_channel_layout_nb_channels(wanted_channel_layout);
+    wanted_spec.channels = wanted_nb_channels;
+    wanted_spec.freq = wanted_sample_rate;
+    if (wanted_spec.freq <= 0 || wanted_spec.channels <= 0) {
+        av_log(NULL, AV_LOG_ERROR, "Invalid sample rate or channel count!\n");
+        return -1;
+    }
+    //todo 找到第一个小于期望采样率的值
+    while (next_sample_rate_idx && next_sample_rates[next_sample_rate_idx] >= wanted_spec.freq) {
+        next_sample_rate_idx--;
+    }
+
+    wanted_spec.format = AV_SAMPLE_FMT_S16;//采样的格式
+    wanted_spec.samples = FFMAX(AUDIO_MIN_BUFFER_SIZE,
+                                2 << av_log2(wanted_spec.freq / AUDIO_MAX_CALLBACKS_PER_SEC));
+    wanted_spec.callback =audioPCMQueueCallback;
+    //
+    //todo 这里的this 应该是player对象。
+//    wanted_spec.userdata = this;
+
+    // 打开音频设备
+//    while (mAudioController->init(&wanted_spec, &spec) < 0) {
+//        av_log(NULL, AV_LOG_WARNING, "Failed to open audio device: (%d channels, %d Hz)!\n",
+//               wanted_spec.channels, wanted_spec.freq);
+//        wanted_spec.channels = next_nb_channels[FFMIN(7, wanted_spec.channels)];
+//        if (!wanted_spec.channels) {
+//            wanted_spec.freq = next_sample_rates[next_sample_rate_idx--];
+//            wanted_spec.channels = wanted_nb_channels;
+//            if (!wanted_spec.freq) {
+//                av_log(NULL, AV_LOG_ERROR, "No more combinations to try, audio open failed\n");
+//                return -1;
+//            }
+//        }
+//        wanted_channel_layout = av_get_default_channel_layout(wanted_spec.channels);
+//    }
+
+    if (spec.format != AV_SAMPLE_FMT_S16) {
+        av_log(NULL, AV_LOG_ERROR, "audio format %d is not supported!\n", spec.format);
+        return -1;
+    }
+
+    if (spec.channels != wanted_spec.channels) {
+        wanted_channel_layout = av_get_default_channel_layout(spec.channels);
+        if (!wanted_channel_layout) {
+            av_log(NULL, AV_LOG_ERROR, "channel count %d is not supported!\n", spec.channels);
+            return -1;
+        }
+    }
+
+//    // 初始化音频重采样器
+    if (!audioResampler) {
+        audioResampler = new AudioResampler;
+    }
+    // 设置需要重采样的参数
+    audioResampler->setResampleParams(&spec, wanted_channel_layout);
+    return 0;
+
+}
+

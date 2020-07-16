@@ -8,7 +8,7 @@
 
 #include <thread>
 #include <jni.h>
-#include "JJPlayer.h"
+#include "AVSyncronizer.h"
 #define LOG_TAG "JJMediaPlayer"
 //todo 定义消息队列中消息的各种状态
 /**
@@ -16,19 +16,21 @@
  */
 #define MP_STATE_ASYNC_PREPARING    2
 
-
-//todo jj 先搭建好框架
 class JJMediaPlayer {
 private:
     //消息循环线程
-    JJPlayer *jjplayer;//播放器类
+    PlayerState *mPlayerState;//播放器类
+    AVSyncronizer *mAVSyncronizer;//音视频的同步类
+    VideoRenderController *mRenderController;
+    OpenSLESAudioController *mAudioController;
+
     std::mutex mutex;
     void* weak_this;//java 类JJMediaPlayer的引用
     std::thread mThreadMessageLoop;
-
 public:
 
     JJMediaPlayer();
+    ~JJMediaPlayer();
     void message_loop();
 
     void setNativieSurface(JNIEnv *env,jobject surface);
@@ -46,7 +48,6 @@ public:
     void start();//总的开始的方法
 
     void setJavaJJPlayerRef(void *ref);
-
 
 
 };

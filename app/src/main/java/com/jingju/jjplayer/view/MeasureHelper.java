@@ -19,11 +19,7 @@ package com.jingju.jjplayer.view;
 
 import android.content.Context;
 import android.view.View;
-
 import androidx.annotation.NonNull;
-
-import com.jingju.jjplayer.R;
-
 import java.lang.ref.WeakReference;
 
 public final class MeasureHelper {

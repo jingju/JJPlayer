@@ -6,7 +6,12 @@
 
 
 JJMediaPlayer::JJMediaPlayer() {
-    jjplayer = new JJPlayer;
+
+    mPlayerState = new PlayerState;
+    mRenderController = new VideoRenderController;
+    mAudioController = new OpenSLESAudioController;
+    mAVSyncronizer = new AVSyncronizer(mPlayerState);
+
 }
 
 void JJMediaPlayer::prepareAsync() {
@@ -18,13 +23,22 @@ void JJMediaPlayer::prepareAsync() {
 
 void JJMediaPlayer::prepareAsyncl() {
     // 消息队列初始化，并放入第一个消息
-    jjplayer->changState(MP_STATE_ASYNC_PREPARING);
+    mPlayerState->changState(MP_STATE_ASYNC_PREPARING);
 //        //todo 开启消息循环的线程
     //todo c++每个成员函数都有一个形参，隐藏的this指针。
     mThreadMessageLoop = std::thread(&JJMediaPlayer::message_loop,this);
     //必须加detach或join
     mThreadMessageLoop.detach();
-    jjplayer->repareAsyncl();
+
+
+//    if (!videoOutput) {
+//        return -1;
+//    }
+    mAVSyncronizer->streamOpen();
+
+    /**
+     * todo 后面的一些操作待定
+     */
 }
 
 /**
@@ -33,7 +47,7 @@ void JJMediaPlayer::prepareAsyncl() {
 void JJMediaPlayer::message_loop() {
     while (true) {
         //todo 读取消息
-        AVMessage *message = jjplayer->getMessage();
+        AVMessage *message = mPlayerState->getMessage();
         int status = message->what;
         switch (status) {
             case MP_STATE_ASYNC_PREPARING:
@@ -51,8 +65,8 @@ void JJMediaPlayer::setJavaJJPlayerRef(void *ref) {
 
 
 void JJMediaPlayer::setNativieSurface(JNIEnv *env, jobject surface) {
-    if (NULL != jjplayer) {
-        jjplayer->setNativeSurface(env, surface);
+    if (NULL != mPlayerState) {
+        mPlayerState->setNativeSurface(env, surface);
     }
 }
 
@@ -67,6 +81,12 @@ void JJMediaPlayer::setNativieSurface(JNIEnv *env, jobject surface) {
 void JJMediaPlayer::setDataSource(JNIEnv *env, jstring path, jobjectArray keys,
                                   jobjectArray values) {
     const char * sourcePath = env->GetStringUTFChars(path, NULL);
-    jjplayer->setSourcePath(sourcePath);
+    mPlayerState->setSourcePath(sourcePath);
 }
+
+
+
+
+
+
 

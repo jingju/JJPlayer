@@ -11,6 +11,8 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
+import com.jingju.jjplayer.R;
+
 /**
  * todo
  *  1、播放的的view的相关的设置（url的设置）

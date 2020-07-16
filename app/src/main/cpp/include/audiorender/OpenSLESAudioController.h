@@ -7,13 +7,13 @@
 extern "C" {
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
+#include <libavutil/channel_layout.h>
 };
 
 #include <cstddef>
 #include <malloc.h>
 #include <jni.h>
 #include <mutex>
-#include <libavutil/samplefmt.h>
 #include "BaseAudioController.h"
 #include "thread"
 
@@ -77,6 +77,8 @@ private:
     int pauseRequest;                   // 暂停标志
     int flushRequest;
 
+    AudioResampler *audioResampler;
+
 public:
     int init(const AudioDeviceSpec *desired, AudioDeviceSpec *obtained) override;
 
@@ -96,6 +98,8 @@ public:
 
     int prepareBufferQueue();
 
+    int open(int64_t wanted_channel_layout, int wanted_nb_channels,
+             int wanted_sample_rate);
 
 };
 

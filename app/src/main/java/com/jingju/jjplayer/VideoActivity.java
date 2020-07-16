@@ -11,6 +11,7 @@ import com.jingju.jjplayer.permission.ActivityPermissionDispatcher;
 import com.jingju.jjplayer.permission.PermissionCallback;
 import com.jingju.jjplayer.utils.Constant;
 import com.jingju.jjplayer.view.JJVideoView;
+import com.jingju.jjplayer.R;
 
 import java.io.File;
 

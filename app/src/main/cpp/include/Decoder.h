@@ -10,10 +10,9 @@
 #include <videorender/VideoRenderController.h>
 #include <audiorender/AudioResampler.h>
 #include "audiorender/BaseAudioController.h"
-
 #include "audiorender/OpenSLESAudioController.h"
-#include "PlayState.h"
 #include "FrameQueue.h"
+#include "PacketQueue.h"
 
 extern "C"{
 #include <libavformat/avformat.h>
@@ -32,6 +31,7 @@ extern "C"{
 using namespace std;
 class Decoder {
 public:
+    //todo 解码应该只负责解码，下面这两项移到Syncoronizer
     VideoRenderController *mRenderController;
     OpenSLESAudioController *mAudioController;
     AudioResampler *audioResampler;
@@ -44,6 +44,7 @@ public:
 
     int video_stream_idx = -1;
     int audio_stream_idx = -1;
+    int subtitle_stream_idx = -1;
     AVCodecContext *video_dec_ctx = NULL, *audio_dec_ctx;
     AVStream *video_stream = NULL, *audio_stream = NULL;
     int refcount=0;
@@ -61,9 +62,20 @@ public:
     FrameQueue *mVideoFrameQueue;
     FrameQueue *mAudioFrameQueue;
 
+
+
+    //todo=====new ===== 删除上面多余的
+    AVCodecContext *codecContext;
+    PacketQueue  *packetQueue;
+    std::thread decodeThread;
+    FrameQueue *frameQueue;
+
+    bool  abortRequest;//停止解码
+
 public:
     Decoder();
-    int openFile(const char *src_filename,VideoRenderController *controller,OpenSLESAudioController *audioController);
+    ~Decoder();
+    void init(AVCodecContext *codecContext);
     void closeFile();
     bool isEOF();
     int decode();
@@ -71,16 +83,20 @@ public:
 
     int interrupt_cb(void *ctx);
 
-    int  open_codec_context(AVCodecContext *dec_ctx,  AVStream * st ,AVMediaType type);
     int decode_packet(int *got_frame, int cached);
     int decodeVideoPacket(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt);
 
-    void videoThread();
-    void audioThread();
+    int videoThread();
+    int audioThread();
     void release();
 
-    int openAudioController(int64_t wanted_channel_layout, int wanted_nb_channels,
-                             int wanted_sample_rate);
+
+
+    //========todo new ======
+    void start(AVMediaType type);
+    void stop();
+    int decodePacketToFrame();
+
 
 };
 
