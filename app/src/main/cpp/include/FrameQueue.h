@@ -10,7 +10,9 @@
 #include <memory>
 #include <queue>
 
-class FrameQueue {
+class
+
+FrameQueue {
     std::mutex m;
     std::condition_variable condition;
     std::queue<AVFrame *> q;

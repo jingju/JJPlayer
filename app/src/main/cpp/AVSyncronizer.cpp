@@ -18,7 +18,6 @@ void AVSyncronizer::initDecoder() {
  */
 void AVSyncronizer::streamOpen() {
     av_register_all();
-    avcodec_register_all();
     /**
     * todo 初始化 VideoState 类，记录player的一些状态
     */
@@ -61,8 +60,10 @@ void AVSyncronizer::streamOpen() {
     initDecoder();
     //todo 初始化视频刷新线程
     mVideoRefreshThread = std::thread(&AVSyncronizer::videoRefreshThread, this);
+    mVideoRefreshThread.detach();
     //todo 流数据的读取，解码
     mReadThread = std::thread(&AVSyncronizer::readThread, this);
+    mReadThread.detach();
 
 }
 
@@ -190,6 +191,8 @@ AVSyncronizer::streamComponentOpen(PlayerState *playerState, AVMediaType type, i
         default:
             break;
     }
+    //todo 如果不调用goto out 会顺序执行，codecContex释放，导致后续无法使用。
+    goto out;
  //todo 失败时释放资源
 fail:
     avcodec_free_context(&codecContext);
@@ -222,11 +225,10 @@ int AVSyncronizer::videoRefreshThread() {
 //            return -1;
 //        }
         AVFrame *frame=mVideoDecoder->frameQueue->wait_and_pop();
+
         mRenderController->render(frame);
-
-        av_frame_free(&frame);
-        av_frame_free(&frame);
-
+//
+//        av_frame_free(&frame);
     }
 //    }
 
@@ -301,12 +303,12 @@ int AVSyncronizer::readThread() {
     }
 
 
-    videoIndex = av_find_best_stream(mPlayerState->mFormtContext, AVMEDIA_TYPE_VIDEO, videoIndex,
-                                     -1, NULL, 0);
-
-
-    audioIndex = av_find_best_stream(mPlayerState->mFormtContext, AVMEDIA_TYPE_AUDIO, audioIndex,
-                                     videoIndex, NULL, 0);
+//    videoIndex = av_find_best_stream(mPlayerState->mFormtContext, AVMEDIA_TYPE_VIDEO, videoIndex,
+//                                     -1, NULL, 0);
+//
+//
+//    audioIndex = av_find_best_stream(mPlayerState->mFormtContext, AVMEDIA_TYPE_AUDIO, audioIndex,
+//                                     videoIndex, NULL, 0);
 
 
     if (videoIndex < 0 && audioIndex < 0) {
@@ -388,7 +390,7 @@ int AVSyncronizer::readThread() {
 //            SDL_UnlockMutex(wait_mutex);
 //            ffp_statistic_l(ffp);
 //            continue;
-            return 0;
+            return -1;
         } else {
 //            is->eof = 0;
         }
@@ -412,28 +414,58 @@ int AVSyncronizer::readThread() {
         stream_start_time = formatContext->streams[pkt->stream_index]->start_time;
         pkt_ts = pkt->pts == AV_NOPTS_VALUE ? pkt->dts : pkt->pts;
         //todo 渲染时间，加上
-        pkt_in_play_range = mPlayerState->duration == AV_NOPTS_VALUE ||
-                            (pkt_ts -
-                             (stream_start_time != AV_NOPTS_VALUE ? stream_start_time : 0)) *
-                            av_q2d(formatContext->streams[pkt->stream_index]->time_base) -
-                            (double) (mPlayerState->startTime != AV_NOPTS_VALUE
-                                      ? mPlayerState->startTime : 0) / 1000000
-                            <= ((double) mPlayerState->duration / 1000000);
-        if (pkt->stream_index == mAudioDecoder->audio_stream_idx && pkt_in_play_range) {
-            mAudioDecoder->packetQueue->push(pkt);
+//        pkt_in_play_range = mPlayerState->duration == AV_NOPTS_VALUE ||
+//                            (pkt_ts -
+//                             (stream_start_time != AV_NOPTS_VALUE ? stream_start_time : 0)) *
+//                            av_q2d(formatContext->streams[pkt->stream_index]->time_base) -
+//                            (double) (mPlayerState->startTime != AV_NOPTS_VALUE
+//                                      ? mPlayerState->startTime : 0) / 1000000
+//                            <= ((double) mPlayerState->duration / 1000000);
+        if (pkt->stream_index == mAudioDecoder->audio_stream_idx) {
+            mAudioDecoder->packetQueue->push(pkt1);
+            LOGI("audio packet---");
             //todo 下面这个分支的所有条件的含义
-        } else if (pkt->stream_index == mVideoDecoder->video_stream_idx && pkt_in_play_range
-                   && !(mVideoDecoder->video_stream &&
-                        (mVideoDecoder->video_stream->disposition & AV_DISPOSITION_ATTACHED_PIC))) {
+        } else if (pkt->stream_index == mVideoDecoder->video_stream_idx) {
 //            packet_queue_put(&is->videoq, pkt);
-            mVideoDecoder->packetQueue->push(pkt);
-        } else if (pkt->stream_index == mSubtitleDecoder->subtitle_stream_idx &&
-                   pkt_in_play_range) {
+            mVideoDecoder->packetQueue->push(pkt1);
+            LOGI("video packet---");
+
+        } else if (pkt->stream_index == mSubtitleDecoder->subtitle_stream_idx) {
 //            packet_queue_put(&is->subtitleq, pkt);
-            mSubtitleDecoder->packetQueue->push(pkt);
+            mSubtitleDecoder->packetQueue->push(pkt1);
         } else {
             av_packet_unref(pkt);
         }
+
+//        pkt_in_play_range = mPlayerState->duration == AV_NOPTS_VALUE ||
+//                            (pkt_ts -
+//                             (stream_start_time != AV_NOPTS_VALUE ? stream_start_time : 0)) *
+//                            av_q2d(formatContext->streams[pkt->stream_index]->time_base) -
+//                            (double) (mPlayerState->startTime != AV_NOPTS_VALUE
+//                                      ? mPlayerState->startTime : 0) / 1000000
+//                            <= ((double) mPlayerState->duration / 1000000);
+//        if (pkt->stream_index == mAudioDecoder->audio_stream_idx && pkt_in_play_range) {
+//            mAudioDecoder->packetQueue->push(pkt);
+//            //todo 下面这个分支的所有条件的含义
+//        } else if (pkt->stream_index == mVideoDecoder->video_stream_idx && pkt_in_play_range
+//                   && !(mVideoDecoder->video_stream &&
+//                        (mVideoDecoder->video_stream->disposition & AV_DISPOSITION_ATTACHED_PIC))) {
+////            packet_queue_put(&is->videoq, pkt);
+//            mVideoDecoder->packetQueue->push(pkt);
+//        } else if (pkt->stream_index == mSubtitleDecoder->subtitle_stream_idx &&
+//                   pkt_in_play_range) {
+////            packet_queue_put(&is->subtitleq, pkt);
+//            mSubtitleDecoder->packetQueue->push(pkt);
+//        } else {
+//            av_packet_unref(pkt);
+//        }
+
+
+
+
+
+
+
 //
 //        ffp_statistic_l(ffp);
 //
@@ -459,6 +491,8 @@ int AVSyncronizer::readThread() {
 //            }
 //        }
     }
+
+    return 0;
 }
 
 void AVSyncronizer::createAudioRender() {

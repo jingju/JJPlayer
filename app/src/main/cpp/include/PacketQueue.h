@@ -16,7 +16,7 @@ class PacketQueue {
 private:
     std::mutex mMutex;
     std::condition_variable mCondition;
-    std::queue<AVPacket*> mQueue;
+    std::queue<AVPacket> mQueue;
 
     int mNbPackets;
     int mSize;
@@ -27,9 +27,9 @@ public:
     void start();
     int abort();
     void flush();
-    int push(AVPacket *packet);
+    int push(AVPacket packet);
     int pushNullPackets(int streamIndex);
-    AVPacket* waitAndPop();
+    AVPacket * waitAndPop();
     int getSize();
 };
 

@@ -31,6 +31,8 @@ extern "C"{
 using namespace std;
 class Decoder {
 public:
+    std::mutex mutex;
+
     //todo 解码应该只负责解码，下面这两项移到Syncoronizer
     VideoRenderController *mRenderController;
     OpenSLESAudioController *mAudioController;
@@ -54,7 +56,8 @@ public:
     uint8_t *video_dst_data[4] = {NULL};
     int      video_dst_linesize[4];
     int video_dst_bufsize; //todo  一帧缓存的大小
-    AVFrame *frame = NULL;
+    AVFrame *aFrame = NULL;
+    AVFrame *vFrame=NULL;
     AVPacket pkt;
 //    void* mDecoder;//解码
     thread mVideoThead;
@@ -78,13 +81,10 @@ public:
     void init(AVCodecContext *codecContext);
     void closeFile();
     bool isEOF();
-    int decode();
 
 
     int interrupt_cb(void *ctx);
 
-    int decode_packet(int *got_frame, int cached);
-    int decodeVideoPacket(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt);
 
     int videoThread();
     int audioThread();
@@ -95,7 +95,7 @@ public:
     //========todo new ======
     void start(AVMediaType type);
     void stop();
-    int decodePacketToFrame();
+    int decodePacketToFrame(AVPacket *pkt,AVFrame *frame);
 
 
 };
