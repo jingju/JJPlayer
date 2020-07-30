@@ -3,6 +3,7 @@
 //
 
 #include "VideoRenderController.h"
+#define LOG_TAG "render"
 
 VideoRenderController::VideoRenderController() {
     eglCore = new EglCore;
@@ -83,7 +84,7 @@ void VideoRenderController::render(AVFrame *avFrame) {
     glVertexAttribPointer(mTextCoordsLoc, 2, GL_FLOAT, 0, 0, mTextCoords);
     glEnableVertexAttribArray(mTextCoordsLoc);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
+    LOGI("render frame");
     eglCore->swapBuffers(_surface);
 }
 
