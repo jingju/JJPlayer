@@ -30,6 +30,7 @@ private:
     Decoder *mAudioDecoder;
     Decoder *mVideoDecoder;
     Decoder *mSubtitleDecoder;
+    std::mutex mutex;
     //todo 时钟
     int streamComponentOpen(PlayerState *playerState,AVMediaType type,int streamIndex);
 

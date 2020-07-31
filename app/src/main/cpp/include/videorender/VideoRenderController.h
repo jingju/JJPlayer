@@ -8,6 +8,7 @@
 #include <android/native_window.h>
 #include <EGL/egl.h>
 #include <egl/egl_core.h>
+#include <mutex>
 #include "es_manager.h"
 
 extern "C"{
@@ -49,6 +50,7 @@ private:
     EGLSurface _surface;
     int screenwidth;
     int screenheight;
+    std::mutex m;
     GLint mSamplers[3];
     GLuint mTextures[3];
     GLint mVertextCoordsLoc;

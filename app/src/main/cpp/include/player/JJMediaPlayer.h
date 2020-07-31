@@ -21,8 +21,6 @@ private:
     //消息循环线程
     PlayerState *mPlayerState;//播放器类
     AVSyncronizer *mAVSyncronizer;//音视频的同步类
-    VideoRenderController *mRenderController;
-    OpenSLESAudioController *mAudioController;
 
     std::mutex mutex;
     void* weak_this;//java 类JJMediaPlayer的引用

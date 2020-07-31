@@ -214,6 +214,8 @@ int AVSyncronizer::videoRefreshThread() {
 //        if (is->show_mode != SHOW_MODE_NONE && (!is->paused || is->force_refresh))
 //            video_refresh(ffp, &remaining_time);
 
+    initVideoRender();
+
     for (;;) {
         if(mVideoDecoder->abortRequest){
             return -1;
@@ -228,10 +230,10 @@ int AVSyncronizer::videoRefreshThread() {
 
         mRenderController->render(frame);
 //
-//        av_frame_free(&frame);
+        av_frame_free(&frame);
     }
-//    }
 
+    return 0;
 
 }
 
@@ -261,7 +263,7 @@ int AVSyncronizer::readThread() {
      *      AVFormateContext的申请
      */
     //todo 初始化egl相关
-    initVideoRender();
+//    initVideoRender();
     //todo 解码流程暂时注释掉
     // ========================
 

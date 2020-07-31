@@ -32,10 +32,6 @@ using namespace std;
 class Decoder {
 public:
     std::mutex mutex;
-
-    //todo 解码应该只负责解码，下面这两项移到Syncoronizer
-    VideoRenderController *mRenderController;
-    OpenSLESAudioController *mAudioController;
     AudioResampler *audioResampler;
 //    void* protocalParser;//解协议
 //    void* formatDemuxer;//解封装

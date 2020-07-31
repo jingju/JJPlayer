@@ -98,8 +98,8 @@ int Decoder::audioThread() {
 
     }
 
-
-    mAudioController->start();
+    //todo 音频的对象初始化
+//    mAudioController->start();
     while (true){
         AVFrame * frame=mVideoFrameQueue->wait_and_pop();
         //todo 进行重新采样

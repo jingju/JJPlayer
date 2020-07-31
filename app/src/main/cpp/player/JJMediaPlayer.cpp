@@ -6,12 +6,8 @@
 
 
 JJMediaPlayer::JJMediaPlayer() {
-
     mPlayerState = new PlayerState;
-    mRenderController = new VideoRenderController;
-    mAudioController = new OpenSLESAudioController;
     mAVSyncronizer = new AVSyncronizer(mPlayerState);
-
 }
 
 void JJMediaPlayer::prepareAsync() {
