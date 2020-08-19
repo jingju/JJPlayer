@@ -82,7 +82,7 @@ int Decoder::videoThread() {
  * @return
  */
 int Decoder::audioThread() {
-    this_thread::sleep_for(chrono::seconds(1));
+//    this_thread::sleep_for(chrono::seconds(1));
     //todo 解码后，方式音频帧队列，供播放者使用
     aFrame=av_frame_alloc();
     AVPacket *pkt;
@@ -99,6 +99,7 @@ int Decoder::audioThread() {
     }
 
     //todo 音频的对象初始化
+
 //    mAudioController->start();
     while (true){
         AVFrame * frame=mVideoFrameQueue->wait_and_pop();
@@ -138,7 +139,7 @@ int Decoder::decodePacketToFrame(AVPacket *pkt,AVFrame *frame1) {
         }
 
         /** 返回值大于0代表还没接收，通常不会进入第二次循环，因为一个packet就代表一个视频帧*/
-        //todo  current 这里有问题，第二次send 把avframe置零了
+        //todo mark 这里有问题，第二次send 把avframe置零了,所以需要重新申请一个
         while (ret>=0) {
             AVFrame * frame =av_frame_alloc();
             ret = avcodec_receive_frame(codecContext, frame); //todo 这里的frame每次接收的时候，都会被重置，所以可以重复使用

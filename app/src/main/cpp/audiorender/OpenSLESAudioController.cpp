@@ -1,9 +1,35 @@
 //
 // Created by Macro on 2020/6/19.
 //
+/**
+ * 思路： packetQueue 有一个当前大小限制
+ *
+ *
+ *       frame queue有一个当前大小的限制。
+ */
 
-#include <player/PlayerState.h>
+
+
+/**
+ *
+ * todo 数据重采样
+ *
+ * todo 填充数据
+ *
+ *
+ *
+ * 数据流      openDevice
+ *
+ *            initDivice(pcm = pcm)
+ *
+ *            //todo 通过pcm回调处理数据
+ *            start()
+ */
 #include "audiorender/OpenSLESAudioController.h"
+
+OpenSLESAudioController::OpenSLESAudioController(PlayerState *state) {
+    mPlayerState = state;
+}
 
 // this callback handler is called every time a buffer finishes playing
 //todo 每次播放完缓冲的数据后，会回调该函数。
@@ -63,16 +89,15 @@ int OpenSLESAudioController::init(const AudioDeviceSpec *desired, AudioDeviceSpe
 
         return -1;
     }
-    (void) result;
 
     // create output mix, with environmental reverb specified as a non-required interface
     const SLInterfaceID outputIds[1] = {SL_IID_ENVIRONMENTALREVERB};
     const SLboolean outputReq[1] = {SL_BOOLEAN_FALSE};
 //    todo id 和 req可以根据自己的需求定制
-    result = (*engineEngine)->CreateOutputMix(engineEngine, &outputMixObject, 0, outputIds,
+    result = (*engineEngine)->CreateOutputMix(engineEngine, &outputMixObject, 1, outputIds,
                                               outputReq);
 //    assert(SL_RESULT_SUCCESS == result);
-    (void) result;
+
     if (result != SL_RESULT_SUCCESS) {
         (*engineObject)->Destroy(engineObject);
         engineObject = NULL;
@@ -82,7 +107,6 @@ int OpenSLESAudioController::init(const AudioDeviceSpec *desired, AudioDeviceSpe
     // realize the output mix
     result = (*outputMixObject)->Realize(outputMixObject, SL_BOOLEAN_FALSE);
 //    assert(SL_RESULT_SUCCESS == result);
-    (void) result;
     if (result != SL_RESULT_SUCCESS) {
         (*engineObject)->Destroy(engineObject);
         engineObject = NULL;
@@ -145,12 +169,17 @@ int OpenSLESAudioController::init(const AudioDeviceSpec *desired, AudioDeviceSpe
     // configure audio source
     SLDataLocator_AndroidSimpleBufferQueue loc_bufq = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE,
                                                        OPENSLES_BUFFERS};
-    SLDataFormat_PCM format_pcm = {SL_DATAFORMAT_PCM, 1, getSLSampleRate(desired->freq),
-                                   SL_PCMSAMPLEFORMAT_FIXED_16, SL_PCMSAMPLEFORMAT_FIXED_16,
-                                   channelMask, SL_BYTEORDER_LITTLEENDIAN};
+    //设置数据格式
+    SLDataFormat_PCM format_pcm = {SL_DATAFORMAT_PCM,
+                                   desired->channels,
+                                   getSLSampleRate(desired->freq),
+                                   SL_PCMSAMPLEFORMAT_FIXED_16,
+                                   SL_PCMSAMPLEFORMAT_FIXED_16,
+                                   channelMask,
+                                   SL_BYTEORDER_LITTLEENDIAN};
 
 
-    SLDataSource audioSrc = {&loc_bufq, &format_pcm};
+    SLDataSource audioSrc = {&loc_bufq, &format_pcm};//数据源
 
 
 
@@ -160,46 +189,69 @@ int OpenSLESAudioController::init(const AudioDeviceSpec *desired, AudioDeviceSpe
      *     fast audio does not support when SL_IID_EFFECTSEND is required, skip it
      *     for fast audio case
      */
-    const SLInterfaceID ids[3] = {SL_IID_BUFFERQUEUE, SL_IID_VOLUME, SL_IID_EFFECTSEND,
-            /*SL_IID_MUTESOLO,*/};
-    const SLboolean req[3] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE,
-            /*SL_BOOLEAN_TRUE,*/ };
+//    const SLInterfaceID ids[3] = {SL_IID_BUFFERQUEUE, SL_IID_VOLUME, SL_IID_EFFECTSEND,
+//            /*SL_IID_MUTESOLO,*/};
+    //todo 之前这里的第一个参数写错了，导致创建失败
+    const SLInterfaceID ids[3] = {SL_IID_ANDROIDSIMPLEBUFFERQUEUE, SL_IID_VOLUME,
+                                  SL_IID_EFFECTSEND};
+    const SLboolean req[3] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE};
 
     result = (*engineEngine)->CreateAudioPlayer(engineEngine, &bqPlayerObject, &audioSrc, &audioSnk,
                                                 3, ids, req);
+    if (result != SL_RESULT_SUCCESS) {
+        return -1;
+    }
     //todo 是否成功的判断
 //    assert(SL_RESULT_SUCCESS == result);
-    (void) result;
 
     // realize the player
     result = (*bqPlayerObject)->Realize(bqPlayerObject, SL_BOOLEAN_FALSE);
 //    assert(SL_RESULT_SUCCESS == result);
-    (void) result;
+    if (result != SL_RESULT_SUCCESS) {
+        return -1;
+    }
 
     // get the play interface
     result = (*bqPlayerObject)->GetInterface(bqPlayerObject, SL_IID_PLAY, &bqPlayerPlay);
 //    assert(SL_RESULT_SUCCESS == result);
-    (void) result;
+    if (result != SL_RESULT_SUCCESS) {
+        return -1;
+    }
+
+
+    // get the volume interface
+    result = (*bqPlayerObject)->GetInterface(bqPlayerObject, SL_IID_VOLUME, &bqPlayerVolume);
+//    assert(SL_RESULT_SUCCESS == result);
+    if (result != SL_RESULT_SUCCESS) {
+        return -1;
+    }
+
 
     // get the buffer queue interface
-    result = (*bqPlayerObject)->GetInterface(bqPlayerObject, SL_IID_BUFFERQUEUE,
+    result = (*bqPlayerObject)->GetInterface(bqPlayerObject, SL_IID_ANDROIDSIMPLEBUFFERQUEUE,
                                              &bqPlayerBufferQueue);
+    if (result != SL_RESULT_SUCCESS) {
+        return -1;
+    }
+
 //    assert(SL_RESULT_SUCCESS == result);
-    (void) result;
 
     // register callback on the buffer queue
     result = (*bqPlayerBufferQueue)->RegisterCallback(bqPlayerBufferQueue, bqPlayerCallback, this);
+    if (result != SL_RESULT_SUCCESS) {
+        return -1;
+    }
+
 //    assert(SL_RESULT_SUCCESS == result);
-    (void) result;
 
     // get the effect send interface
-    bqPlayerEffectSend = NULL;
-    if (0 == bqPlayerSampleRate) {
-        result = (*bqPlayerObject)->GetInterface(bqPlayerObject, SL_IID_EFFECTSEND,
-                                                 &bqPlayerEffectSend);
-//        assert(SL_RESULT_SUCCESS == result);
-        (void) result;
-    }
+//    bqPlayerEffectSend = NULL;
+//    if (0 == bqPlayerSampleRate) {
+//        result = (*bqPlayerObject)->GetInterface(bqPlayerObject, SL_IID_EFFECTSEND,
+//                                                 &bqPlayerEffectSend);
+////        assert(SL_RESULT_SUCCESS == result);
+//        (void) result;
+//    }
 
 #if 0   // mute/solo is not supported for sources that are known to be mono, as this is
     // get the mute/solo interface
@@ -208,15 +260,10 @@ int OpenSLESAudioController::init(const AudioDeviceSpec *desired, AudioDeviceSpe
     (void)result;
 #endif
 
-    // get the volume interface
-    result = (*bqPlayerObject)->GetInterface(bqPlayerObject, SL_IID_VOLUME, &bqPlayerVolume);
-//    assert(SL_RESULT_SUCCESS == result);
-    (void) result;
-
-    // set the player's state to playing
-    result = (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_PLAYING);
-//    assert(SL_RESULT_SUCCESS == result);
-    (void) result;
+//    // set the player's state to playing
+//    result = (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_PLAYING);
+////    assert(SL_RESULT_SUCCESS == result);
+//    (void) result;
 
     // 这里计算缓冲区大小等参数
     bytes_per_frame = format_pcm.numChannels * format_pcm.bitsPerSample / 8;  // 一帧占多少字节
@@ -253,6 +300,7 @@ int OpenSLESAudioController::init(const AudioDeviceSpec *desired, AudioDeviceSpe
                                                  bytes_per_buffer);
         if (result != SL_RESULT_SUCCESS) {
 //            ALOGE("%s: slBufferQueueItf->Enqueue(000...) failed", __func__);
+            return -1;
         }
     }
 
@@ -278,118 +326,12 @@ void OpenSLESAudioController::releaseResampleBuf() {
 
 /**
  * 开始播放
- *
  */
-
 void OpenSLESAudioController::start() {
-    uint8_t *next_buffer = NULL;
-    int next_buffer_index = 0;
-    //todo 暂时不开启线程。
-    // 获取缓冲队列状态
-    // 退出播放线程
-//    if (abortRequest) {
-//        break;
-//    }
-//
-//    // 暂停
-//    if (pauseRequest) {
-//        continue;
-//    }
-
-    // 获取缓冲队列状态
-    SLAndroidSimpleBufferQueueState slState = {0};
-    SLresult slRet = (*bqPlayerBufferQueue)->GetState(bqPlayerBufferQueue, &slState);
-    if (slRet != SL_RESULT_SUCCESS) {
-//        ALOGE("%s: slBufferQueueItf->GetState() failed\n", __func__);
-        mMutex.unlock();
-    }
-    // 判断暂停或者队列中缓冲区填满了
-    mMutex.lock();
-    //todo 这里暂时注掉一些状态的判断
-    if (!abortRequest && (pauseRequest || slState.count >= OPENSLES_BUFFERS)) {
-        while (slState.count >= OPENSLES_BUFFERS) {
-            while (!abortRequest && (pauseRequest || slState.count >= OPENSLES_BUFFERS)) {
-
-                if (!pauseRequest) {
-                    (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_PLAYING);
-                }
-
-                //todo condition暂时不处理
-//            mCondition.waitRelative(mMutex, 10 * 1000000);
-                slRet = (*bqPlayerBufferQueue)->GetState(bqPlayerBufferQueue, &slState);
-                if (slRet != SL_RESULT_SUCCESS) {
-//                ALOGE("%s: slBufferQueueItf->GetState() failed\n", __func__);
-                    mMutex.unlock();
-                }
-
-                if (pauseRequest) {
-                    (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_PAUSED);
-                }
-            }
-
-            if (!abortRequest && !pauseRequest) {
-                (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_PLAYING);
-            }
-//
-        }
-        //todo 暂时不管管，播放出来再说
-        if (flushRequest) {
-            (*bqPlayerBufferQueue)->Clear(bqPlayerBufferQueue);
-            flushRequest = 0;
-        }
-        mMutex.unlock();
-
-        mMutex.lock();
-        // 通过回调填充PCM数据
-        //todo 这里的写法类似一个循环缓冲区
-        if (audioDeviceSpec.callback != NULL) {
-            next_buffer = buffer + next_buffer_index * bytes_per_buffer;
-            next_buffer_index = (next_buffer_index + 1) % OPENSLES_BUFFERS;
-            //todo
-            audioDeviceSpec.callback(audioDeviceSpec.userdata, next_buffer, bytes_per_buffer);
-        }
-        mMutex.unlock();
-
-        //todo 暂时不处理
-        // 更新音量
-//    if (updateVolume) {
-//        if (slVolumeItf != NULL) {
-//            SLmillibel level = getAmplificationLevel((leftVolume + rightVolume) / 2);
-//            SLresult result = (*slVolumeItf)->SetVolumeLevel(slVolumeItf, level);
-//            if (result != SL_RESULT_SUCCESS) {
-//                ALOGE("slVolumeItf->SetVolumeLevel failed %d\n", (int) result);
-//            }
-//        }
-//        updateVolume = false;
-//    }
-        // todo 暂时不处理
-        // 刷新缓冲区还是将数据入队缓冲区
-        if (flushRequest) {
-            (*bqPlayerBufferQueue)->Clear(bqPlayerBufferQueue);
-            flushRequest = 0;
-        } else {
-            if (bqPlayerPlay != NULL) {
-                (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_PLAYING);
-            }
-            slRet = (*bqPlayerBufferQueue)->Enqueue(bqPlayerBufferQueue, next_buffer,
-                                                    bytes_per_buffer);
-            if (slRet == SL_RESULT_SUCCESS) {
-                // do nothing
-            } else if (slRet == SL_RESULT_BUFFER_INSUFFICIENT) {
-                // don't retry, just pass through
-//            ALOGE("SL_RESULT_BUFFER_INSUFFICIENT\n");
-            } else {
-//            ALOGE("slBufferQueueItf->Enqueue() = %d\n", (int) slRet);
-//            break;
-            }
-        }
-    }
-
-    if (bqPlayerPlay) {
-        (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_STOPPED);
-    }
-
+    audioPlayThread= std::thread(&OpenSLESAudioController::playThread,this);
+    audioPlayThread.detach();
 }
+
 
 void OpenSLESAudioController::resume() {
 
@@ -454,13 +396,11 @@ SLuint32 OpenSLESAudioController::getSLSampleRate(int sampleRate) {
         }
     }
 }
+
 //带返回值就好了
 void audioPCMQueueCallback(void *opaque, uint8_t *stream, int len) {
-
-//    mediaPlayer->pcmQueueCallback(stream, len);
-    //todo 这里进行重新采样
-
-
+    AudioResampler *audioResampler = static_cast<AudioResampler *>(opaque);
+    audioResampler->pcmQueueCallback(stream,len);
 }
 
 //打开
@@ -491,26 +431,28 @@ int OpenSLESAudioController::open(int64_t wanted_channel_layout, int wanted_nb_c
     wanted_spec.format = AV_SAMPLE_FMT_S16;//采样的格式
     wanted_spec.samples = FFMAX(AUDIO_MIN_BUFFER_SIZE,
                                 2 << av_log2(wanted_spec.freq / AUDIO_MAX_CALLBACKS_PER_SEC));
-    wanted_spec.callback =audioPCMQueueCallback;
+    wanted_spec.callback = audioPCMQueueCallback;
     //
     //todo 这里的this 应该是player对象。
 //    wanted_spec.userdata = this;
 
     // 打开音频设备
-//    while (mAudioController->init(&wanted_spec, &spec) < 0) {
-//        av_log(NULL, AV_LOG_WARNING, "Failed to open audio device: (%d channels, %d Hz)!\n",
-//               wanted_spec.channels, wanted_spec.freq);
-//        wanted_spec.channels = next_nb_channels[FFMIN(7, wanted_spec.channels)];
-//        if (!wanted_spec.channels) {
-//            wanted_spec.freq = next_sample_rates[next_sample_rate_idx--];
-//            wanted_spec.channels = wanted_nb_channels;
-//            if (!wanted_spec.freq) {
-//                av_log(NULL, AV_LOG_ERROR, "No more combinations to try, audio open failed\n");
-//                return -1;
-//            }
-//        }
-//        wanted_channel_layout = av_get_default_channel_layout(wanted_spec.channels);
-//    }
+    //todo current 这里还是有问题
+
+    while (init(&wanted_spec, &spec) < 0) {
+        av_log(NULL, AV_LOG_WARNING, "Failed to open audio device: (%d channels, %d Hz)!\n",
+               wanted_spec.channels, wanted_spec.freq);
+        wanted_spec.channels = next_nb_channels[FFMIN(7, wanted_spec.channels)];
+        if (!wanted_spec.channels) {
+            wanted_spec.freq = next_sample_rates[next_sample_rate_idx--];
+            wanted_spec.channels = wanted_nb_channels;
+            if (!wanted_spec.freq) {
+                av_log(NULL, AV_LOG_ERROR, "No more combinations to try, audio open failed\n");
+                return -1;
+            }
+        }
+        wanted_channel_layout = av_get_default_channel_layout(wanted_spec.channels);
+    }
 
     if (spec.format != AV_SAMPLE_FMT_S16) {
         av_log(NULL, AV_LOG_ERROR, "audio format %d is not supported!\n", spec.format);
@@ -526,12 +468,130 @@ int OpenSLESAudioController::open(int64_t wanted_channel_layout, int wanted_nb_c
     }
 
 //    // 初始化音频重采样器
-    if (!audioResampler) {
-        audioResampler = new AudioResampler;
+    if (!mAudioResampler) {
+        mAudioResampler= new AudioResampler(mPlayerState);
     }
     // 设置需要重采样的参数
-    audioResampler->setResampleParams(&spec, wanted_channel_layout);
+    mAudioResampler->setResampleParams(&spec, wanted_channel_layout);
     return 0;
+
+}
+
+/**
+ * todo 音频播放线程
+ */
+void OpenSLESAudioController::playThread() {
+
+    uint8_t *next_buffer = NULL;//下一个数据
+    int next_buffer_index = 0;//下一个数据的索引
+
+    if (!abortRequest && !pauseRequest) {
+        (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_PLAYING);
+    }
+
+    //todo 暂时不开启线程。
+    // 获取缓冲队列状态
+    // 退出播放线程
+    while (true) {
+        //    if (abortRequest) {
+//        break;
+//    }
+//
+//    // 暂停
+//    if (pauseRequest) {
+//        continue;
+//    }
+        // 获取缓冲队列状态
+        SLAndroidSimpleBufferQueueState slState = {0};
+        SLresult slRet = (*bqPlayerBufferQueue)->GetState(bqPlayerBufferQueue, &slState);
+        if (slRet != SL_RESULT_SUCCESS) {
+//        ALOGE("%s: slBufferQueueItf->GetState() failed\n", __func__);
+            mMutex.unlock();
+        }
+        // 判断暂停或者队列中缓冲区填满了
+        mMutex.lock();
+        //todo 这里暂时注掉一些状态的判断
+        if (!abortRequest && (pauseRequest || slState.count >= OPENSLES_BUFFERS)) {
+            while (!abortRequest && (pauseRequest || slState.count >= OPENSLES_BUFFERS)) {
+
+                if (!pauseRequest) {
+                    (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_PLAYING);
+                }
+
+                //todo condition暂时不处理
+//            mCondition.waitRelative(mMutex, 10 * 1000000);
+                slRet = (*bqPlayerBufferQueue)->GetState(bqPlayerBufferQueue, &slState);
+                if (slRet != SL_RESULT_SUCCESS) {
+//                ALOGE("%s: slBufferQueueItf->GetState() failed\n", __func__);
+                    mMutex.unlock();
+                }
+
+                if (pauseRequest) {
+                    (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_PAUSED);
+                }
+            }
+
+            if (!abortRequest && !pauseRequest) {
+                (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_PLAYING);
+            }
+//
+        }
+        //todo 暂时不管管，播放出来再说
+        if (flushRequest) {
+            (*bqPlayerBufferQueue)->Clear(bqPlayerBufferQueue);
+            flushRequest = 0;
+        }
+        mMutex.unlock();
+
+        mMutex.lock();
+        // 通过回调填充PCM数据
+        //todo 这里的写法类似一个循环缓冲区，index从0到4
+        if (audioDeviceSpec.callback != NULL) {
+            next_buffer = buffer + next_buffer_index * bytes_per_buffer;
+            next_buffer_index = (next_buffer_index + 1) % OPENSLES_BUFFERS;
+            //todo
+            audioDeviceSpec.callback(mAudioResampler, next_buffer, bytes_per_buffer);
+        }
+        mMutex.unlock();
+
+        //todo 暂时不处理
+        // 更新音量
+//    if (updateVolume) {
+//        if (slVolumeItf != NULL) {
+//            SLmillibel level = getAmplificationLevel((leftVolume + rightVolume) / 2);
+//            SLresult result = (*slVolumeItf)->SetVolumeLevel(slVolumeItf, level);
+//            if (result != SL_RESULT_SUCCESS) {
+//                ALOGE("slVolumeItf->SetVolumeLevel failed %d\n", (int) result);
+//            }
+//        }
+//        updateVolume = false;
+//    }
+        // todo 暂时不处理
+        // 刷新缓冲区还是将数据入队缓冲区
+        if (flushRequest) {
+            (*bqPlayerBufferQueue)->Clear(bqPlayerBufferQueue);
+            flushRequest = 0;
+        } else {
+            if (bqPlayerPlay != NULL) {
+                (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_PLAYING);
+            }
+            slRet = (*bqPlayerBufferQueue)->Enqueue(bqPlayerBufferQueue, next_buffer,
+                                                    bytes_per_buffer);
+            if (slRet == SL_RESULT_SUCCESS) {
+                // do nothing
+            } else if (slRet == SL_RESULT_BUFFER_INSUFFICIENT) {
+                // don't retry, just pass through
+//            ALOGE("SL_RESULT_BUFFER_INSUFFICIENT\n");
+            } else {
+//            ALOGE("slBufferQueueItf->Enqueue() = %d\n", (int) slRet);
+                break;
+            }
+        }
+    }
+
+    if (bqPlayerPlay) {
+        (*bqPlayerPlay)->SetPlayState(bqPlayerPlay, SL_PLAYSTATE_STOPPED);
+    }
 
 }
 

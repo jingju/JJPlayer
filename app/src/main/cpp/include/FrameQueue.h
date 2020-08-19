@@ -9,6 +9,9 @@
 #include <condition_variable>
 #include <memory>
 #include <queue>
+extern "C"{
+    #include <libavutil/frame.h>
+};
 
 class
 

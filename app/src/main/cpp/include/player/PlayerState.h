@@ -63,10 +63,17 @@ public:
     ANativeWindow *_window;
 
 
+    Decoder *mAudioDecoder;
+    Decoder *mVideoDecoder;
+    Decoder *mSubtitleDecoder;
+
     PacketQueue  mVideQueue;
     PacketQueue  mAudioQueue;
     PacketQueue  mSubTitleQueue;
     //todo subtitle queue 字幕队列
+
+
+
 
 
 
@@ -77,6 +84,12 @@ public:
 
     int64_t startTime;              // 播放起始位置
     int64_t duration;               // 播放时长    //todo 默认是 NO_OPTION_VALUE
+
+
+
+    //todo
+    uint8_t * audioBuffer;//音频缓冲区指针
+
 public:
     //todo 相关的初始化操作
     /**

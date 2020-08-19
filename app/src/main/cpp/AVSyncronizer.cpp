@@ -9,8 +9,8 @@ AVSyncronizer::AVSyncronizer(PlayerState *playerState) {
 }
 
 void AVSyncronizer::initDecoder() {
-    mAudioDecoder = new Decoder;
-    mVideoDecoder = new Decoder;
+    mPlayerState->mAudioDecoder = new Decoder;
+    mPlayerState->mVideoDecoder = new Decoder;
 }
 
 /**
@@ -78,7 +78,7 @@ AVSyncronizer::streamComponentOpen(PlayerState *playerState, AVMediaType type, i
     AVFormatContext *formatContext = playerState->mFormtContext;
     AVCodecContext *codecContext = nullptr;
     int lowres = playerState->lowres;
-    AVPacket pkt1,*pkt=&pkt1;
+    AVPacket pkt1, *pkt = &pkt1;
     int64_t stream_start_time;
     int pkt_in_play_range = 0;
     int64_t pkt_ts;
@@ -86,9 +86,9 @@ AVSyncronizer::streamComponentOpen(PlayerState *playerState, AVMediaType type, i
     AVDictionary *opts = NULL;
     AVCodec *codec = NULL;
     int ret = 0;
-    int sampleRate=0;
-    int nbChannels=0;
-    uint64_t channelLayout=0;
+    int sampleRate = 0;
+    int nbChannels = 0;
+    uint64_t channelLayout = 0;
 
 
     /* find mDecoder for the stream */
@@ -145,7 +145,7 @@ AVSyncronizer::streamComponentOpen(PlayerState *playerState, AVMediaType type, i
     //设置哪些数据包可以丢弃
     formatContext->streams[streamIndex]->discard = AVDISCARD_DEFAULT;
     switch (codecContext->codec_type) {
-        case AVMEDIA_TYPE_AUDIO:
+        case AVMEDIA_TYPE_AUDIO: {
 #if CONFIG_AVFILTER
             //todo 是否设置了视频的转换器
             {
@@ -173,30 +173,39 @@ AVSyncronizer::streamComponentOpen(PlayerState *playerState, AVMediaType type, i
             channelLayout = codecContext->channel_layout;
 #endif
             // 打开音频设备。
-            mAudioController->open(codecContext->channel_layout,codecContext->channels,codecContext->sample_rate);
+            int ret = mAudioController->open(codecContext->channel_layout, codecContext->channels,
+                                             codecContext->sample_rate);
             //todo 初始化解码器和解码线程
-            mAudioDecoder->audio_stream_idx=streamIndex;
-            mAudioDecoder->audio_stream=formatContext->streams[streamIndex];
+            //本
+            if (ret < 0) {
+                //todo 重新设置同步模式为按照视频时间同步
+
+            } else {
+                mAudioController->start();
+                mPlayerState->mAudioDecoder->audio_stream_idx = streamIndex;
+                mPlayerState->mAudioDecoder->audio_stream = formatContext->streams[streamIndex];
 //            mAudioDecoder->init(codecContext,&mPlayerState->mAudioQueue);
-            mAudioDecoder->init(codecContext);
-            mAudioDecoder->start(AVMEDIA_TYPE_AUDIO);
+                mPlayerState->mAudioDecoder->init(codecContext);
+                mPlayerState->mAudioDecoder->start(AVMEDIA_TYPE_AUDIO);
+            }
+        }
             break;
         case AVMEDIA_TYPE_VIDEO:
-            mVideoDecoder->video_stream_idx=streamIndex;
-            mVideoDecoder->video_stream=formatContext->streams[streamIndex];
-            mVideoDecoder->init(codecContext);
+            mPlayerState->mVideoDecoder->video_stream_idx = streamIndex;
+            mPlayerState->mVideoDecoder->video_stream = formatContext->streams[streamIndex];
+            mPlayerState->mVideoDecoder->init(codecContext);
 //            mVideoDecoder->init(codecContext,&mPlayerState->mVideQueue);
-            mVideoDecoder->start(AVMEDIA_TYPE_VIDEO);
+            mPlayerState->mVideoDecoder->start(AVMEDIA_TYPE_VIDEO);
             break;
         default:
             break;
     }
     //todo 如果不调用goto out 会顺序执行，codecContex释放，导致后续无法使用。
     goto out;
- //todo 失败时释放资源
-fail:
+    //todo 失败时释放资源
+    fail:
     avcodec_free_context(&codecContext);
-out:
+    out:
     av_dict_free(&opts);
     return 0;
 }
@@ -217,7 +226,7 @@ int AVSyncronizer::videoRefreshThread() {
     initVideoRender();
 
     for (;;) {
-        if(mVideoDecoder->abortRequest){
+        if (mPlayerState->mVideoDecoder->abortRequest) {
             return -1;
         }
 
@@ -226,7 +235,7 @@ int AVSyncronizer::videoRefreshThread() {
 //
 //            return -1;
 //        }
-        AVFrame *frame=mVideoDecoder->frameQueue->wait_and_pop();
+        AVFrame *frame = mPlayerState->mVideoDecoder->frameQueue->wait_and_pop();
 
         mRenderController->render(frame);
 //
@@ -243,7 +252,7 @@ int AVSyncronizer::readThread() {
     AVFormatContext *formatContext = nullptr;
     AVCodecContext *codecContext = nullptr;
     int lowres = mPlayerState->lowres;
-    AVPacket pkt1,*pkt=&pkt1;
+    AVPacket pkt1, *pkt = &pkt1;
     int64_t stream_start_time;
     int pkt_in_play_range = 0;
     int64_t pkt_ts;
@@ -269,8 +278,8 @@ int AVSyncronizer::readThread() {
 
     int ret = 0;
     //todo 加锁
-    formatContext= avformat_alloc_context();
-    mPlayerState->mFormtContext=formatContext;
+    formatContext = avformat_alloc_context();
+    mPlayerState->mFormtContext = formatContext;
 
     //todo 下面的opotion都要添加
     /** open input file, and allocate format context */
@@ -319,11 +328,11 @@ int AVSyncronizer::readThread() {
     }
 
     //todo 打开视频组件相关
-    streamComponentOpen(mPlayerState,AVMEDIA_TYPE_VIDEO,videoIndex);
+    streamComponentOpen(mPlayerState, AVMEDIA_TYPE_VIDEO, videoIndex);
 
 
     //todo 打开音频组件相关
-    streamComponentOpen(mPlayerState,AVMEDIA_TYPE_AUDIO,audioIndex);
+    streamComponentOpen(mPlayerState, AVMEDIA_TYPE_AUDIO, audioIndex);
 
     //todo 最后放开
 //    is->show_mode = ffp->show_mode;
@@ -341,7 +350,7 @@ int AVSyncronizer::readThread() {
         //todo 一些播放器状态的处理。
         int ret = 0;
         ret = av_read_frame(formatContext, pkt);
-        if(ret<0){
+        if (ret < 0) {
             //读完了，或者读取错误。
             int pb_eof = 0;
             int pb_error = 0;
@@ -423,18 +432,18 @@ int AVSyncronizer::readThread() {
 //                            (double) (mPlayerState->startTime != AV_NOPTS_VALUE
 //                                      ? mPlayerState->startTime : 0) / 1000000
 //                            <= ((double) mPlayerState->duration / 1000000);
-        if (pkt->stream_index == mAudioDecoder->audio_stream_idx) {
-            mAudioDecoder->packetQueue->push(pkt1);
+        if (pkt->stream_index == mPlayerState->mAudioDecoder->audio_stream_idx) {
+            mPlayerState->mAudioDecoder->packetQueue->push(pkt1);
             LOGI("audio packet---");
             //todo 下面这个分支的所有条件的含义
-        } else if (pkt->stream_index == mVideoDecoder->video_stream_idx) {
+        } else if (pkt->stream_index == mPlayerState->mVideoDecoder->video_stream_idx) {
 //            packet_queue_put(&is->videoq, pkt);
-            mVideoDecoder->packetQueue->push(pkt1);
+            mPlayerState->mVideoDecoder->packetQueue->push(pkt1);
             LOGI("video packet---");
 
-        } else if (pkt->stream_index == mSubtitleDecoder->subtitle_stream_idx) {
+        } else if (pkt->stream_index == mPlayerState->mSubtitleDecoder->subtitle_stream_idx) {
 //            packet_queue_put(&is->subtitleq, pkt);
-            mSubtitleDecoder->packetQueue->push(pkt1);
+            mPlayerState->mSubtitleDecoder->packetQueue->push(pkt1);
         } else {
             av_packet_unref(pkt);
         }
@@ -498,7 +507,7 @@ int AVSyncronizer::readThread() {
 }
 
 void AVSyncronizer::createAudioRender() {
-    mAudioController = new OpenSLESAudioController;
+    mAudioController = new OpenSLESAudioController(mPlayerState);
 }
 
 

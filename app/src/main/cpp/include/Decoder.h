@@ -7,10 +7,6 @@
 
 #include <string>
 #include <thread>
-#include <videorender/VideoRenderController.h>
-#include <audiorender/AudioResampler.h>
-#include "audiorender/BaseAudioController.h"
-#include "audiorender/OpenSLESAudioController.h"
 #include "FrameQueue.h"
 #include "PacketQueue.h"
 
@@ -32,7 +28,6 @@ using namespace std;
 class Decoder {
 public:
     std::mutex mutex;
-    AudioResampler *audioResampler;
 //    void* protocalParser;//解协议
 //    void* formatDemuxer;//解封装
 

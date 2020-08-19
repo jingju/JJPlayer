@@ -14,7 +14,9 @@
 #include "Decoder.h"
 #include <string>
 #include "PlayerState.h"
+#include "audiorender/OpenSLESAudioController.h"
 #define LOG_TAG "AVSyncronizer"
+
 
 using namespace std;
 class AVSyncronizer {
@@ -26,10 +28,6 @@ private:
 
     std::thread mVideoRefreshThread;//视频的刷新线程
     std::thread mReadThread;//解码后的音视频帧的读取线程
-
-    Decoder *mAudioDecoder;
-    Decoder *mVideoDecoder;
-    Decoder *mSubtitleDecoder;
     std::mutex mutex;
     //todo 时钟
     int streamComponentOpen(PlayerState *playerState,AVMediaType type,int streamIndex);

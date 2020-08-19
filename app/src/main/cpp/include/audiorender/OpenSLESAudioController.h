@@ -8,14 +8,17 @@ extern "C" {
 #include <SLES/OpenSLES.h>
 #include <SLES/OpenSLES_Android.h>
 #include <libavutil/channel_layout.h>
+#include <libavutil/time.h>
 };
 
 #include <cstddef>
 #include <malloc.h>
 #include <jni.h>
 #include <mutex>
+#include "player/PlayerState.h"
 #include "BaseAudioController.h"
 #include "thread"
+#include "AudioResampler.h"
 
 #define OPENSLES_BUFFERS 4 // 最大缓冲区数量
 #define OPENSLES_BUFLEN  10 // 缓冲区长度(毫秒)
@@ -44,7 +47,7 @@ private:
      SLObjectItf bqPlayerObject = nullptr;
      SLPlayItf bqPlayerPlay;
      SLAndroidSimpleBufferQueueItf bqPlayerBufferQueue;
-     SLEffectSendItf bqPlayerEffectSend;
+     SLEffectSendItf bqPlayerEffectSend; //
      SLVolumeItf bqPlayerVolume;
      short *nextBuffer;
      unsigned nextSize;
@@ -68,7 +71,7 @@ private:
     jint bqPlayerBufSize = 0;
     short *resampleBuf = NULL;
     std::mutex mMutex;
-    std::thread *audioPlayThread;//音频播放线程
+    std::thread audioPlayThread;//音频播放线程
 
 // pointer and size of the next player buffer to enqueue, and number of remaining buffers
 
@@ -77,9 +80,11 @@ private:
     int pauseRequest;                   // 暂停标志
     int flushRequest;
 
-    AudioResampler *audioResampler;
+    PlayerState *mPlayerState;
+    AudioResampler *mAudioResampler;
 
 public:
+    OpenSLESAudioController(PlayerState *state);
     int init(const AudioDeviceSpec *desired, AudioDeviceSpec *obtained) override;
 
     void start() override;
@@ -101,6 +106,7 @@ public:
     int open(int64_t wanted_channel_layout, int wanted_nb_channels,
              int wanted_sample_rate);
 
+    void playThread();
 };
 
 
