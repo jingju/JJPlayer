@@ -41,7 +41,11 @@ public:
     void streamOpen();
     void createAudioRender();
     void initVideoRender();
+    void videoRefresh(double* remainingTime);
 
+    double getDuration(Frame *last,Frame *current);
+    double computeTargetDelay(double lastDuration);
+    void upDateVideoPts( double pts,int serial);//更新video的播放时间
 };
 
 

@@ -9,13 +9,14 @@
 #include <condition_variable>
 #include <memory>
 #include <queue>
+#define MAX_FRAME_QUEUE_SIZE 10;
 extern "C"{
     #include <libavutil/frame.h>
 };
-
-class
-
-FrameQueue {
+/**
+ * todo 还要设置最大的容量值
+ */
+class FrameQueue {
     std::mutex m;
     std::condition_variable condition;
     std::queue<AVFrame *> q;

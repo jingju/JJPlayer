@@ -8,15 +8,18 @@
 
 #define LOG_TAG "VideoDecoder"
 
+#include "FrameQueue2.h"
 
 Decoder::Decoder() {
     packetQueue=new PacketQueue;
     frameQueue=new FrameQueue;
+    mFrameQueue2=new FrameQueue2;
 }
 
 Decoder::~Decoder() {
     delete packetQueue;
     delete frameQueue;
+    delete mFrameQueue2;
 }
 
 /** connect time out call back*/
@@ -102,7 +105,6 @@ int Decoder::audioThread() {
 
 //    mAudioController->start();
     while (true){
-        AVFrame * frame=mVideoFrameQueue->wait_and_pop();
         //todo 进行重新采样
 
 
@@ -113,7 +115,6 @@ int Decoder::audioThread() {
 
 
 
-        av_frame_unref(frame);
     }
     return 0;
 }
@@ -166,17 +167,42 @@ int Decoder::decodePacketToFrame(AVPacket *pkt,AVFrame *frame1) {
 
             //todo 对应的一些相关的赋值操作
             switch (codecContext->codec_type){
-                case AVMEDIA_TYPE_AUDIO:
+                case AVMEDIA_TYPE_AUDIO:{
                     frameQueue->push(frame);
                     break;
-                case AVMEDIA_TYPE_VIDEO:
+                }
+                case AVMEDIA_TYPE_VIDEO: {
+                    //todo 暂时注释掉
+//                    frameQueue->push(frame);
+
+                    //todo 转换成通用的数据保存起来
+                    Frame *videoFrame = (Frame *) malloc(sizeof(Frame));
+                    videoFrame->frame = av_frame_alloc();
+                    videoFrame->pts =
+                            frame->pts == AV_NOPTS_VALUE ? NAN : av_q2d(video_stream->time_base) *
+                                                                 frame->pts;//播放时间s
+                    videoFrame->format = frame->format;
+                    //todo 创建渲染对象，和自己的项目不符合
+
+                    //todo 保存对应的frame到队列中
+                    videoFrame->pos = frame->pkt_pos;
+                    av_frame_move_ref(videoFrame->frame, frame);
+                    //序列号的处理
+//                    vp->serial = serial;
+                    //todo 以下参数的处理暂时不加
+//                    vp->sar = src_frame->sample_aspect_ratio;
+//                    vp->bmp->sar_num = vp->sar.num;
+//                    vp->bmp->sar_den = vp->sar.den;
+
+                    //todo push的时候，应该内部会重新创建变量，所以不用担心内存释放后，无值问题
+                    mFrameQueue2->push(videoFrame);
+                    av_frame_unref(frame);
+                    break;
+                }
+                case AVMEDIA_TYPE_SUBTITLE: {
                     frameQueue->push(frame);
                     break;
-                case AVMEDIA_TYPE_SUBTITLE:
-                    frameQueue->push(frame);
-                    break;
-                default:
-                    break;
+                }
 
             }
             //

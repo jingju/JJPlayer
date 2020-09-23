@@ -17,11 +17,12 @@ private:
     std::mutex mMutex;
     std::condition_variable mCondition;
     std::queue<AVPacket> mQueue;
-
+public:
     int mNbPackets;
     int mSize;
     int64_t duration;
     int abort_request;
+    int serial;
 public:
     PacketQueue();
     void start();

@@ -19,11 +19,12 @@ static char* OUTPUT_VIEW_VERTEX_SHADER =
         "attribute vec4 position;    \n"
         "attribute vec2 texcoord;   \n"
         "uniform mat4 modelViewProjectionMatrix;\n"
-        "uniform mat4 rotateMatrix;\n"
+//        "uniform mat4 rotateMatrix;\n"
         "varying vec2 v_texcoord;     \n"
         "void main(void)               \n"
         "{                            \n"
-        "   gl_Position =modelViewProjectionMatrix*rotateMatrix*position;  \n"
+//        "   gl_Position =modelViewProjectionMatrix*rotateMatrix*position;  \n"
+        "   gl_Position =modelViewProjectionMatrix*position;  \n"
         "   v_texcoord = texcoord.xy;  \n"
         "}                            \n";
 
@@ -71,9 +72,9 @@ private:
                     1.0f, 0.0f
             };
     //y u v数据缓存
-    unsigned char * y;
-    unsigned char * u;
-    unsigned char * v;
+    unsigned char * y=nullptr;
+    unsigned char * u= nullptr;
+    unsigned char * v= nullptr;
 public:
     VideoRenderController();
     GLint loadShaderAndPro();

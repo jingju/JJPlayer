@@ -2,6 +2,7 @@
 // Created by Macro on 2020-02-14.
 //
 
+#include <__locale>
 #include "AVSyncronizer.h"
 
 AVSyncronizer::AVSyncronizer(PlayerState *playerState) {
@@ -47,10 +48,6 @@ void AVSyncronizer::streamOpen() {
 
 
 
-    //todo 初始化video audio 和 ext 实际时间的时钟
-
-
-
     //todo 相关声音的初始化，线程条件变量的初始化，精确的seek
 
     //todo openDevice
@@ -58,6 +55,8 @@ void AVSyncronizer::streamOpen() {
     //===================================
     //todo 初始化解码器
     initDecoder();
+    //todo 初始化video audio 和 ext 实际时间的时钟
+    mPlayerState->initAllClock();
     //todo 初始化视频刷新线程
     mVideoRefreshThread = std::thread(&AVSyncronizer::videoRefreshThread, this);
     mVideoRefreshThread.detach();
@@ -210,40 +209,211 @@ AVSyncronizer::streamComponentOpen(PlayerState *playerState, AVMediaType type, i
     return 0;
 }
 
+///**
+// * todo 以前的视频的渲染界面
+// * @return
+// */
+//int AVSyncronizer::videoRefreshThread() {
+//
+////    while (!mPlayerState.abortRequest) {
+////        if (remaining_time > 0.0)
+////            av_usleep((int)(int64_t)(remaining_time * 1000000.0));
+////        remaining_time = REFRESH_RATE;
+////        if (is->show_mode != SHOW_MODE_NONE && (!is->paused || is->force_refresh))
+////            video_refresh(ffp, &remaining_time);
+//
+//    initVideoRender();
+//
+//    for (;;) {
+//        if (mPlayerState->mVideoDecoder->abortRequest) {
+//            return -1;
+//        }
+//
+////        if(mVideoDecoder->frameQueue->getSize()<=0){
+////             //todo 停止渲染
+////
+////            return -1;
+////        }
+//        AVFrame *frame = mPlayerState->mVideoDecoder->frameQueue->wait_and_pop();
+//        //todo 计算渲染时间
+//        //=======================================================================
+//        Frame* mFrame=mPlayerState->mVideoDecoder->mFrameQueue2->wait_and_pop();
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//        //=====================================================================
+//        mRenderController->render(frame);
+////
+//        av_frame_free(&frame);
+//    }
+//
+//    return 0;
+//
+//}
+
 /**
  * 视频的渲染界面
  * @return
  */
 int AVSyncronizer::videoRefreshThread() {
-
-//    while (!mPlayerState.abortRequest) {
-//        if (remaining_time > 0.0)
-//            av_usleep((int)(int64_t)(remaining_time * 1000000.0));
-//        remaining_time = REFRESH_RATE;
-//        if (is->show_mode != SHOW_MODE_NONE && (!is->paused || is->force_refresh))
-//            video_refresh(ffp, &remaining_time);
-
     initVideoRender();
-
-    for (;;) {
-        if (mPlayerState->mVideoDecoder->abortRequest) {
-            return -1;
-        }
-
-//        if(mVideoDecoder->frameQueue->getSize()<=0){
-//             //todo 停止渲染
-//
-//            return -1;
-//        }
-        AVFrame *frame = mPlayerState->mVideoDecoder->frameQueue->wait_and_pop();
-
-        mRenderController->render(frame);
-//
-        av_frame_free(&frame);
+    double remainingTime = 0.0;
+    while (!mPlayerState->abort_request) {
+        //todo 这里的睡眠打到延迟播放的目的
+        if (remainingTime > 0.0)
+            av_usleep((int) (int64_t) (remainingTime * 1000000.0));//todo 睡眠响应的时间再播放
+        remainingTime = REFRESH_RATE;
+        //todo 这些判断暂时不加
+//        if (is->show_mode != SHOW_MODE_NONE && (!is->paused || is->force_refresh))
+        videoRefresh(&remainingTime);//引用的方式传入的，改边的是实际的值
     }
 
-    return 0;
 
+    return 0;
+}
+
+
+/**
+ * 展示video的实际方法
+ * todo 如果是单纯的视频，直接延迟对应的时间播放下一帧就好了
+ */
+
+void AVSyncronizer::videoRefresh(double *remainingTime) {
+
+    double time=0.0;
+    Frame *lastFrame= nullptr, *nextFrame= nullptr;
+
+
+    if (mPlayerState->mVideoDecoder->video_stream != nullptr) {
+retry:
+          //todo 尺寸暂时没有处理
+//        if (mPlayerState->mVideoDecoder->mFrameQueue2->getSize() == 0) {
+//            // nothing to do, no picture to display in the queue
+//        } else {
+            double currentDuration, duration, delay;
+            /* dequeue the frame */
+        //正在播放的帧
+        lastFrame = mPlayerState->mVideoDecoder->mFrameQueue2->getLastFrame();
+        //将要播放的帧，如果，没有播放，责不删除，
+        nextFrame = mPlayerState->mVideoDecoder->mFrameQueue2->wait_and_get_front();
+        //todo 找出下一帧
+
+            //todo 暂时不处理，最后在进行序列号的赋值的处理
+//            if (lasF->serial != is->videoq.serial) {//序列号不同，下一帧
+//                frame_queue_next(&is->pictq);
+//                goto retry;
+//            }
+
+//            if (lastFrame->serial != vp->serial)
+//                is->frame_timer = av_gettime_relative() / 1000000.0;
+
+            //todo 如果是第一针获取刷新时间
+            if (lastFrame==NULL)
+                mPlayerState->frameTimer = av_gettime_relative() / 1000000.0;
+
+//            if (is->paused)
+//                goto display;
+
+            /* compute nominal last_duration */
+            currentDuration = getDuration(lastFrame, nextFrame);
+            delay = computeTargetDelay(currentDuration);
+
+            time = av_gettime_relative() / 1000000.0;
+            if (time < mPlayerState->frameTimer)
+                mPlayerState->frameTimer= time;
+            if (time < mPlayerState->frameTimer + delay) {
+                *remainingTime = FFMIN(mPlayerState->frameTimer + delay - time, *remainingTime);
+//                goto display;
+                //todo 这里直接结束就好了
+                return;
+            }
+
+            mPlayerState->frameTimer += delay;
+            if (delay > 0 && time - mPlayerState->frameTimer > AV_SYNC_THRESHOLD_MAX)
+                mPlayerState->frameTimer = time;
+
+//            SDL_LockMutex(is->pictq.mutex);
+            if (!isnan(nextFrame->pts))
+                upDateVideoPts( nextFrame->pts,nextFrame->serial);//todo更新视频的时间戳
+//            SDL_UnlockMutex(is->pictq.mutex);
+             //todo 暂不处理
+//            if (frame_queue_nb_remaining(&is->pictq) > 1) {
+//                Frame *nextvp = frame_queue_peek_next(&is->pictq);
+//                duration = vp_duration(is, vp, nextvp);
+//                if (!is->step && (ffp->framedrop > 0 || (ffp->framedrop &&
+//                                                         get_master_sync_type(is) !=
+//                                                         AV_SYNC_VIDEO_MASTER)) &&
+//                    time > is->frame_timer + duration) {
+//                    frame_queue_next(&is->pictq);
+//                    goto retry;
+//                }
+//            }
+            //todo 字幕相关，暂不处理
+
+//            if (is->subtitle_st) {
+//                while (frame_queue_nb_remaining(&is->subpq) > 0) {
+//                    sp = frame_queue_peek(&is->subpq);
+//
+//                    if (frame_queue_nb_remaining(&is->subpq) > 1)
+//                        sp2 = frame_queue_peek_next(&is->subpq);
+//                    else
+//                        sp2 = NULL;
+//
+//                    if (sp->serial != is->subtitleq.serial
+//                        || (is->vidclk.pts > (sp->pts + ((float) sp->sub.end_display_time / 1000)))
+//                        || (sp2 && is->vidclk.pts > (sp2->pts + ((float) sp2->sub.start_display_time / 1000))))
+//                    {
+//                        if (sp->uploaded) {
+//                            ffp_notify_msg4(ffp, FFP_MSG_TIMED_TEXT, 0, 0, "", 1);
+//                        }
+//                        frame_queue_next(&is->subpq);
+//                    } else {
+//                        break;
+//                    }
+//                }
+//            }
+
+//            frame_queue_next(&is->pictq);
+//            is->force_refresh = 1;
+//            //TODO 暂停
+//            SDL_LockMutex(ffp->is->play_mutex);
+//            if (is->step) {
+//                is->step = 0;
+//                if (!is->paused)
+//                    stream_update_pause_l(ffp);
+//            }
+//            SDL_UnlockMutex(ffp->is->play_mutex);
+        }
+    display:
+        /* display picture */
+//        if (!ffp->display_disable && is->force_refresh && is->show_mode == SHOW_MODE_VIDEO &&
+//            is->pictq.rindex_shown)
+//            //todo 渲染
+//            video_display2(ffp);
+            //todo 直接调过来的，还是播放上一帧
+            if(nextFrame!= nullptr)
+                //todo 真正的播放完一帧，再去删除这一帧
+                mRenderController->render(nextFrame->frame);
+                mPlayerState->mVideoDecoder->mFrameQueue2->wait_and_pop();
+                av_frame_free(&nextFrame->frame);
+
+
+//    }
 }
 
 
@@ -517,3 +687,63 @@ void AVSyncronizer::initVideoRender() {
     mRenderController->prepareRender();
 }
 
+double AVSyncronizer::getDuration(Frame *last, Frame *next) {
+    //todo 注释掉的内容暂时不处理
+    if(last==NULL){//第一帧，延迟为0。
+        return 0.0;
+    }
+//    if (current->serial == next->serial) {
+    double duration = next->pts - last->pts;
+//        if (isnan(duration) || duration <= 0 || du    ration > is->max_frame_duration)//todo 这里也先不处理
+    if (isnan(duration) || duration <= 0)
+        return last->duration;
+    else
+        return duration;
+//    }
+//    else {
+//        return 0.0;
+//    }
+
+}
+
+/**
+ * 计算目标延迟
+ * @param lastDuration
+ * @param playerState
+ * @return
+ */
+double AVSyncronizer::computeTargetDelay(double delay) {
+
+    double syncThreshold, diff = 0;
+    //TODO 根据主参考时间（视频时间或音频时间来确定如何计算延长时间）
+    /* update delay to follow master synchronisation source */
+    if (mPlayerState->getClock(&mPlayerState->mVideoClock) != AV_SYNC_VIDEO_MASTER) {
+        diff = mPlayerState->getClock(&mPlayerState->mVideoClock)
+               - mPlayerState->getMasterClock();
+
+        syncThreshold = FFMAX(AV_SYNC_THRESHOLD_MIN,
+                              FFMIN(AV_SYNC_THRESHOLD_MAX, delay));//todo 时间同步的阀值
+        if (!isnan(diff) &&
+            fabs(diff) < AV_NOSYNC_THRESHOLD) { //todo 如果大于 AV_NOSYNC_THRESHOL，发生重大错误，不进行修正
+            if (diff <= -syncThreshold)//过慢 todo diff为负值，切值较大
+                delay = FFMAX(0, delay + diff);
+            else if (diff >= syncThreshold && delay > AV_SYNC_FRAMEDUP_THRESHOLD)//过快
+                delay = delay + diff;
+            else if (diff >= syncThreshold)
+                delay = 2 * delay;
+        }
+    }
+
+    return delay;
+}
+
+/**
+ *
+ * 更新视频的播放时间
+ *
+ */
+void AVSyncronizer::upDateVideoPts( double pts, int serial) {
+    /* update current video pts */
+    mPlayerState->setClock(&mPlayerState->mVideoClock, pts, serial);
+    mPlayerState->syncClockToSlave(&mPlayerState->mExctClock, &mPlayerState->mVideoClock);
+}

@@ -9,6 +9,7 @@
 #include <thread>
 #include "FrameQueue.h"
 #include "PacketQueue.h"
+#include <FrameQueue2.h>
 
 extern "C"{
 #include <libavformat/avformat.h>
@@ -39,7 +40,7 @@ public:
     int audio_stream_idx = -1;
     int subtitle_stream_idx = -1;
     AVCodecContext *video_dec_ctx = NULL, *audio_dec_ctx;
-    AVStream *video_stream = NULL, *audio_stream = NULL;
+    AVStream *video_stream = nullptr, *audio_stream = nullptr;
     int refcount=0;
 
     int width, height;//视频帧宽高
@@ -51,13 +52,6 @@ public:
     AVFrame *vFrame=NULL;
     AVPacket pkt;
 //    void* mDecoder;//解码
-    thread mVideoThead;
-    thread mAudioThread;
-    FrameQueue *mVideoFrameQueue;
-    FrameQueue *mAudioFrameQueue;
-
-
-
     //todo=====new ===== 删除上面多余的
     AVCodecContext *codecContext;
     PacketQueue  *packetQueue;
@@ -65,6 +59,11 @@ public:
     FrameQueue *frameQueue;
 
     bool  abortRequest;//停止解码
+
+
+
+    //todo 新加的转换后的统一的
+    FrameQueue2* mFrameQueue2;
 
 public:
     Decoder();

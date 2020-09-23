@@ -50,11 +50,30 @@
 #include <PacketQueue.h>
 #include "Decoder.h"
 #include "videorender/VideoRenderController.h"
+extern "C"{
+#include <libavutil/time.h>
+}
+typedef struct Clock{
+    double pts;           /* clock base */
+    double pts_drift;     /* clock base minus time at which we updated the clock */
+    double last_updated;
+    double speed;
+    int serial;           /* clock is based on a packet with this serial */
+    int paused;
+    int *queue_serial;
+
+} Clock;
+
+enum {
+    AV_SYNC_AUDIO_MASTER, /* default choice */
+    AV_SYNC_VIDEO_MASTER,
+    AV_SYNC_EXTERNAL_CLOCK, /* synchronize to an external clock */
+};
+
 class PlayerState {
 
 public:
     MessageQueue mMessageQueue;
-    Decoder * mDecoder;
     const char * mSourPath;
 
     //todo 抽象成这样两个对象
@@ -63,19 +82,27 @@ public:
     ANativeWindow *_window;
 
 
-    Decoder *mAudioDecoder;
-    Decoder *mVideoDecoder;
+    Decoder *mAudioDecoder= nullptr;
+    Decoder *mVideoDecoder= nullptr;
     Decoder *mSubtitleDecoder;
 
-    PacketQueue  mVideQueue;
-    PacketQueue  mAudioQueue;
-    PacketQueue  mSubTitleQueue;
+    //packetQueue都放在了decoder里面。
+//    PacketQueue  mVideQueue;
+//    PacketQueue  mAudioQueue;
+//    PacketQueue  mSubTitleQueue;
     //todo subtitle queue 字幕队列
 
 
 
 
 
+    //todo 时钟
+    Clock mAudioClcok;//音频时钟
+    Clock mVideoClock;//视频时钟
+    Clock mExctClock;//外部时钟
+    int avSyncType=AV_SYNC_VIDEO_MASTER;//时钟的同步方式
+//    int avSyncType=AV_SYNC_AUDIO_MASTER;//时钟的同步方式//todo 暂时写成这种方式，测试显示
+    double frameTimer=0.0;
 
     AVFormatContext *mFormtContext= nullptr;
     int lowres=0;//低分辨率解码
@@ -90,12 +117,15 @@ public:
     //todo
     uint8_t * audioBuffer;//音频缓冲区指针
 
-public:
     //todo 相关的初始化操作
+
+    int abort_request=0;//todo 停止刷新
+public:
     /**
      *
      */
      ~PlayerState();
+
     void init();
 
     void setNativeSurface(JNIEnv *env, jobject surface);
@@ -108,6 +138,16 @@ public:
 
     void initPacketQueue();
 
+    void initClock(Clock *c, int *queue_serial);
+    void setClockAt(Clock *c, double pts, int serial, double time);
+    void setClock(Clock *c, double pts, int serial);
+    void initAllClock();
+
+    double getClock(Clock *c);
+    int getMasterSyncType();
+    void setMasterSyncType(int syncType);
+    double getMasterClock();
+    void syncClockToSlave(Clock *c ,Clock *slave);
 };
 
 
