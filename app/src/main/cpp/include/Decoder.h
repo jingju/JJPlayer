@@ -26,6 +26,9 @@ extern "C"{
     av_packet_free(&pkt);
  */
 using namespace std;
+/**
+ *  todo 最后抽象一个父类，将video decoder 和 audio decoder分开
+ */
 class Decoder {
 public:
     std::mutex mutex;
@@ -48,9 +51,9 @@ public:
     uint8_t *video_dst_data[4] = {NULL};
     int      video_dst_linesize[4];
     int video_dst_bufsize; //todo  一帧缓存的大小
-    AVFrame *aFrame = NULL;
+    AVFrame *aFrame = NULL;//todo 待换成nullptr
     AVFrame *vFrame=NULL;
-    AVPacket pkt;
+    AVPacket *pkt= nullptr;//全局使用的AVPacket;
 //    void* mDecoder;//解码
     //todo=====new ===== 删除上面多余的
     AVCodecContext *codecContext;
@@ -59,11 +62,17 @@ public:
     FrameQueue *frameQueue;
 
     bool  abortRequest;//停止解码
+    bool  isPending=false;
 
 
 
     //todo 新加的转换后的统一的
     FrameQueue2* mFrameQueue2;
+
+    //audio
+    int64_t  next_pts=0;
+    AVRational next_pts_tb;//时间基
+
 
 public:
     Decoder();

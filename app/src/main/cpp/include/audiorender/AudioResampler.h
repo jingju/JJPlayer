@@ -65,6 +65,7 @@ public:
     int setResampleParams(AudioDeviceSpec *spec, int64_t wanted_channel_layout);
 
     void pcmQueueCallback(uint8_t *stream, int len);
+    void upDataAudioClock();
 
 private:
     int audioSynchronize(int nbSamples);

@@ -4,9 +4,9 @@
 # Sets the minimum version of CMake required to build the native library.
 
 cmake_minimum_required(VERSION 3.4.1)
-
+#定义一个变量并给变量
 set(PATH_TO_MEDIACORE ${CMAKE_SOURCE_DIR}/src/main/cpp)
-
+# 将符合表达式的文件列表存储到变量中
 file(GLOB SRC_LIST ${PROJECT_SOURCE_DIR}/src/main/cpp/*.cpp)
 file(GLOB PLAYER_SRC_LIST ${PROJECT_SOURCE_DIR}/src/main/cpp/player/*.cpp)
 file(GLOB SDL_SRC_LIST ${PROJECT_SOURCE_DIR}/src/main/cpp/sdl/*.cpp)

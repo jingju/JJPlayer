@@ -265,8 +265,10 @@ void AudioResampler::pcmQueueCallback(uint8_t *stream, int len) {
     while (len > 0) {
         if (audioState->bufferIndex >= audioState->bufferSize) {
 //            bufferSize = audioFrameResample();
-            AVFrame *frame =playerState->mAudioDecoder->frameQueue->wait_and_pop();
-            bufferSize = resample(frame);
+//            AVFrame *frame =playerState->mAudioDecoder->frameQueue->wait_and_pop();
+            Frame *frame =playerState->mAudioDecoder->mFrameQueue2->wait_and_pop();
+            bufferSize = resample(frame->frame);
+//            bufferSize = resample(frame);
             if (bufferSize < 0) {
                 audioState->outputBuffer = NULL;
                 audioState->bufferSize = (unsigned int) (AUDIO_MIN_BUFFER_SIZE / audioState->audioParamsTarget.frame_size
@@ -294,14 +296,20 @@ void AudioResampler::pcmQueueCallback(uint8_t *stream, int len) {
         audioState->bufferIndex += length;
     }
     audioState->writeBufferSize = audioState->bufferSize - audioState->bufferIndex;
+//    /* Let's assume the audio driver that is used by SDL has two periods. */
+//    //todo 音频时间的同步,这里有待验证
+//    upDataAudioClock();
 
-    //todo 暂时不处理时间的同步
-//    if (!isnan(audioState->audioClock) && mediaSync) {
-//        mediaSync->updateAudioClock(audioState->audioClock -
-//                                    (double) (2 * audioState->audio_hw_buf_size + audioState->writeBufferSize)
-//                                    / audioState->audioParamsTarget.bytes_per_sec,
-//                                    audioState->audio_callback_time / 1000000.0);
-//    }
 
+}
+
+//todo 更新音频时钟
+void AudioResampler::upDataAudioClock() {
+    if (!isnan(audioState->audioClock)) {
+        playerState->setClockAt(&playerState->mAudioClcok,
+                                audioState->audioClock - (double)(2*audioState->audio_hw_buf_size+audioState->writeBufferSize)/audioState->audioParamsTarget.bytes_per_sec
+                ,playerState->mAudioClcok.serial,audioState->audio_callback_time/1000000.0 );
+        playerState->syncClockToSlave(&playerState->mExctClock,&playerState->mAudioClcok);
+    }
 
 }
