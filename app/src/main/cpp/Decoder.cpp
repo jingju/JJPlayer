@@ -58,6 +58,7 @@ void Decoder::start(AVMediaType type) {
  * @return
  */
 int Decoder::videoThread() {
+    LOGI("video doecode thread start");
 //    this_thread::sleep_for(chrono::seconds(10));
     //todo 思路有问题，应该统一用一个PacketQueue
     vFrame = av_frame_alloc();
