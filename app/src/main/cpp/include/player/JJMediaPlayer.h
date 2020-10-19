@@ -48,6 +48,7 @@ public:
     void setJavaJJPlayerRef(void *ref);
 
 
+    void setDestFilePath(JNIEnv *env, jstring destYuvPath,jstring destPcmPath);
 };
 
 

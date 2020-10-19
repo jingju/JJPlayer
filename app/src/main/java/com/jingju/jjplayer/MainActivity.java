@@ -23,7 +23,7 @@ import com.jingju.jjplayer.R;
  *
  */
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     // Used to load the 'native-lib' library on application startup.
     static {
@@ -36,16 +36,11 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         // Example of a call to a native method
-        TextView tv = findViewById(R.id.sample_text);
+        TextView decode = findViewById(R.id.decode);
+        TextView remux = findViewById(R.id.remux);
 
-        tv.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent();
-                intent.setClass(MainActivity.this,VideoActivity.class);
-                MainActivity.this.startActivity(intent);
-            }
-        });
+        decode.setOnClickListener(this);
+        remux.setOnClickListener(this);
 
 //        getBestSampleRate();
 
@@ -68,6 +63,21 @@ public class MainActivity extends AppCompatActivity {
             return sampleRate;
         } else {
             return 44100;
+        }
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()){
+            case R.id.decode:
+                Intent intent = new Intent();
+                intent.setClass(MainActivity.this,VideoActivity.class);
+                MainActivity.this.startActivity(intent);
+                break;
+            case R.id.remux:
+
+
+                break;
         }
     }
 }

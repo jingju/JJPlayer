@@ -2,15 +2,10 @@ package com.jingju.jjplayer.view;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.media.AudioManager;
-import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
-import android.text.TextUtils;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.Gravity;
-import android.view.Surface;
-import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -22,7 +17,6 @@ import androidx.annotation.NonNull;
 import com.jingju.jjplayer.IMediaPlayer;
 import com.jingju.jjplayer.JJMediaPlayer;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
@@ -104,6 +98,8 @@ public class JJVideoView extends FrameLayout implements MediaController.MediaPla
     private int mCurrentAspectRatio = s_allAspectRatio[0];
     private Uri mUri;
     private Map<String, String> mHeaders;
+    private String mYuvFileUri;
+    private String mPcmFileUri;
 
 
     public JJVideoView(Context context) {
@@ -332,6 +328,7 @@ public class JJVideoView extends FrameLayout implements MediaController.MediaPla
 //                mMediaPlayer.setSourcePath(mAppContext, mUri, mHeaders);
 //            } else {
                 mMediaPlayer.setDataSource(mUri.toString());
+                mMediaPlayer.setDestFilePath(mYuvFileUri, mPcmFileUri);
 //            }
             bindSurfaceHolder(mMediaPlayer, mSurfaceHolder);
             mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
@@ -423,5 +420,11 @@ public class JJVideoView extends FrameLayout implements MediaController.MediaPla
     @Override
     public int getAudioSessionId() {
         return 0;
+    }
+
+    public void setDestFilePath(String yuvFileUri, String pcmFileUri) {
+
+        this.mYuvFileUri =yuvFileUri;
+        this.mPcmFileUri=pcmFileUri;
     }
 }

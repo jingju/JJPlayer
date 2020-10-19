@@ -67,3 +67,12 @@ Java_com_jingju_jjplayer_JJMediaPlayer_nPrepareAsync(JNIEnv *env, jobject thiz) 
         player->prepareAsync();
     }
 }
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_jingju_jjplayer_JJMediaPlayer_mSetDestYuvPath(JNIEnv *env, jobject thiz,
+                                                       jstring yuvPath,jstring pcmPath) {
+    // TODO: implement mSetDestYuvPath()
+    player->setDestFilePath(env, yuvPath,pcmPath);
+
+}

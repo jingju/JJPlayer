@@ -65,6 +65,9 @@ public interface IMediaPlayer {
     void setDataSource(String path)
             throws IOException, IllegalArgumentException, SecurityException, IllegalStateException;
 
+    void setDestFilePath(String yuvPath, String pcmPath)
+            throws IOException, IllegalArgumentException, SecurityException, IllegalStateException;
+
     String getDataSource();
 
     void prepareAsync() throws IllegalStateException;

@@ -10,6 +10,8 @@
 #include "FrameQueue.h"
 #include "PacketQueue.h"
 #include <FrameQueue2.h>
+#include <fstream>
+#include <iostream>
 
 extern "C"{
 #include <libavformat/avformat.h>
@@ -74,10 +76,15 @@ public:
     AVRational next_pts_tb;//时间基
 
 
+
+   //裸数据保存的位置
+   const char * destDataFilePath= nullptr;
+
+
 public:
     Decoder();
     ~Decoder();
-    void init(AVCodecContext *codecContext);
+    void init(AVCodecContext *codecContext,const char * destDataSavePath);
     void closeFile();
     bool isEOF();
 
@@ -94,7 +101,7 @@ public:
     //========todo new ======
     void start(AVMediaType type);
     void stop();
-    int decodePacketToFrame(AVPacket *pkt,AVFrame *frame);
+    int decodePacketToFrame(AVPacket *pkt,AVFrame *frame,ofstream &out);
 
 
 };

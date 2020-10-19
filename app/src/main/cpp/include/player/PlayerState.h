@@ -148,6 +148,11 @@ public:
     void setMasterSyncType(int syncType);
     double getMasterClock();
     void syncClockToSlave(Clock *c ,Clock *slave);
+
+    void setDestYuvFilePath(const char *yuvPath,const char *pcmPath);
+
+    const char *mDestYuvFilePath= nullptr;
+    const char *mDestPcmFilePath= nullptr;
 };
 
 

@@ -70,6 +70,7 @@ public class JJMediaPlayer implements IMediaPlayer{
         nSetDataSource(path, null, null);
     }
 
+
     private native void nSetDataSource(String path,String[] keys,String[] values);
 
     @Override
@@ -243,9 +244,17 @@ public class JJMediaPlayer implements IMediaPlayer{
 
     }
 
+    @Override
+    public void setDestFilePath(String path, String pcmPath) throws IOException, IllegalArgumentException, SecurityException, IllegalStateException {
+        mSetDestYuvPath(path,pcmPath);
+    }
+
     public native void nSetVideoSurface(Surface surface);
 
     public native void nPrepareAsync();
+
+
+    public native void mSetDestYuvPath(String yuvPath,String pcmPath);
 
 
 }

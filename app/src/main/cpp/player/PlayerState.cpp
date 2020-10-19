@@ -150,3 +150,9 @@ void PlayerState::syncClockToSlave(Clock *c, Clock *slave) {
     if (!isnan(slave_clock) && (isnan(clock) || fabs(clock - slave_clock) > AV_NOSYNC_THRESHOLD))
         setClock(c, slave_clock, slave->serial);
 }
+
+void PlayerState::setDestYuvFilePath(const char *yuvFilePath,const char *pcmFilePath) {
+    mDestYuvFilePath=yuvFilePath;
+    mDestPcmFilePath=pcmFilePath;
+
+}

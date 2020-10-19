@@ -184,7 +184,7 @@ AVSyncronizer::streamComponentOpen(PlayerState *playerState, AVMediaType type, i
                 mPlayerState->mAudioDecoder->audio_stream_idx = streamIndex;
                 mPlayerState->mAudioDecoder->audio_stream = formatContext->streams[streamIndex];
 //            mAudioDecoder->init(codecContext,&mPlayerState->mAudioQueue);
-                mPlayerState->mAudioDecoder->init(codecContext);
+                mPlayerState->mAudioDecoder->init(codecContext,mPlayerState->mDestPcmFilePath);
                 mPlayerState->mAudioDecoder->start(AVMEDIA_TYPE_AUDIO);
             }
         }
@@ -192,7 +192,7 @@ AVSyncronizer::streamComponentOpen(PlayerState *playerState, AVMediaType type, i
         case AVMEDIA_TYPE_VIDEO:
             mPlayerState->mVideoDecoder->video_stream_idx = streamIndex;
             mPlayerState->mVideoDecoder->video_stream = formatContext->streams[streamIndex];
-            mPlayerState->mVideoDecoder->init(codecContext);
+            mPlayerState->mVideoDecoder->init(codecContext,mPlayerState->mDestYuvFilePath);
 //            mVideoDecoder->init(codecContext,&mPlayerState->mVideQueue);
             mPlayerState->mVideoDecoder->start(AVMEDIA_TYPE_VIDEO);
             break;

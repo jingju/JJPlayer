@@ -33,8 +33,9 @@ void Decoder::release() {
 
 }
 
-void Decoder::init(AVCodecContext *codecContext) {
+void Decoder::init(AVCodecContext *codecContext,const char * destDataFilePath) {
     this->codecContext = codecContext;
+    this->destDataFilePath=destDataFilePath;
 }
 
 
@@ -61,7 +62,8 @@ int Decoder::videoThread() {
     //todo 思路有问题，应该统一用一个PacketQueue
     vFrame = av_frame_alloc();
     int ret = 0;
-    AVPacket *packet=nullptr;
+    AVPacket *packet = nullptr;
+    ofstream outfile(destDataFilePath, ios::app);
 
     for (;;) {
 
@@ -70,12 +72,13 @@ int Decoder::videoThread() {
 //            av_packet_move_ref(packet, pkt);
 //            isPending = false;
 //        } else {
-        packet = packetQueue->waitAndPop();
+            packet = packetQueue->waitAndPop();
 //        }
         if (abortRequest) {
             return -1;
         }
-        ret = decodePacketToFrame(packet, vFrame);
+
+        ret = decodePacketToFrame(packet, vFrame,outfile);
         mutex.unlock();
 //        if(ret<0){
 //            av_frame_free(&vFrame);
@@ -106,7 +109,9 @@ int Decoder::audioThread() {
 
     int ret = 0;
 
-    AVPacket *packet= nullptr;
+    AVPacket *packet = nullptr;
+    ofstream outfile(destDataFilePath, ios::app);
+
     for (;;) {
 
 //        if (isPending) {
@@ -115,7 +120,7 @@ int Decoder::audioThread() {
 //        } else {
         packet = packetQueue->waitAndPop();
 //        }
-        ret = decodePacketToFrame(packet, aFrame);
+        ret = decodePacketToFrame(packet, aFrame,outfile);
 //        if(ret<0){
 //            av_frame_free(&aFrame);
 //            av_packet_free(&pkt);
@@ -141,9 +146,13 @@ int Decoder::audioThread() {
     }
     return 0;
 }
-
+/**
+ * 将yuv数据和pcm数据写到
+ * @param packet
+ * @param frame1
+ * @return
 //todo 只包含一个压缩的AVFrame视频帧;一个音频的AVPacket可能包含多个AVFrame音频帧*/
-int Decoder::decodePacketToFrame(AVPacket *packet, AVFrame *frame1) {
+int Decoder::decodePacketToFrame(AVPacket *packet, AVFrame *frame1,ofstream &outFile) {
     int ret = 0;
     //todo 还有其它的条件判断
     if (abortRequest) {
@@ -159,7 +168,7 @@ int Decoder::decodePacketToFrame(AVPacket *packet, AVFrame *frame1) {
     ret = avcodec_send_packet(codecContext, packet);
 
     if (ret < 0) {
-        LOGI("Error sending a packet for decoding %d\n",ret);
+        LOGI("Error sending a packet for decoding %d\n", ret);
 
         if (ret == AVERROR(EAGAIN)) {//不接受输入，必须输出完所有数据，才能重新读入
             if (nullptr != pkt) {
@@ -184,7 +193,7 @@ int Decoder::decodePacketToFrame(AVPacket *packet, AVFrame *frame1) {
         if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
             av_frame_free(&frame);
             return -1;
-        }else if (ret < 0) {
+        } else if (ret < 0) {
             LOGI("Error during decoding code %d\n", ret);
             //todo 程序异常
             av_frame_free(&frame);
@@ -194,20 +203,11 @@ int Decoder::decodePacketToFrame(AVPacket *packet, AVFrame *frame1) {
         LOGI("saving frame %3d %3d\n", codecContext->frame_number, codecContext->codec_type);
 //            fflush(stdout);
 
-        /* the picture is allocated by the mDecoder. no need to
-           free it */
-//            LOGI(LOG_TAG,buf, sizeof(buf), "%s-%d", filename, video_dec_ctx->frame_number);
-
-
-
-        //todo 这里代表成功接收了一帧图像,这里可以设置go_frame>=0了，在外面再去保存数据
-//        pgm_save(frame->data[0], frame->linesize[0],
-//                 frame->width, frame->height, buf);
-
-
         //todo 对应的一些相关的赋值操作
         switch (codecContext->codec_type) {
             case AVMEDIA_TYPE_AUDIO: {
+                //todo today 写pcm数据到文件
+
 //=============================todo=== 重新计算Frame的时间戳==========
                 LOGI("audiotype");
 //                AVRational tb = (AVRational) {1,44100};//时间基
@@ -265,6 +265,7 @@ int Decoder::decodePacketToFrame(AVPacket *packet, AVFrame *frame1) {
                 break;
             }
             case AVMEDIA_TYPE_VIDEO: {
+
                 //todo 暂时注释掉
 //                    frameQueue->push(frame);
 
@@ -289,8 +290,27 @@ int Decoder::decodePacketToFrame(AVPacket *packet, AVFrame *frame1) {
 
                 //todo push的时候，应该内部会重新创建变量，所以不用担心内存释放后，无值问题
                 mFrameQueue2->push(videoFrame);
+//                av_frame_unref(frame);
+//                av_frame_free(&frame);
+
+                //todo 写yuv 数据到文件=========
+                /**
+                 * 请求权限
+                 * 打开文件
+                 * 写入 yuv 数据
+                 */
+
+                //todo today  在开始申请权限的时候，申请所有权限
+                if(outFile.is_open()){
+                    int with=codecContext->width;
+                    int height=codecContext->height;
+                    outFile.write(reinterpret_cast<const char *>(frame->data[0]), with * height);
+                    outFile.write(reinterpret_cast<const char *>(frame->data[1]), with * height/4);
+                    outFile.write(reinterpret_cast<const char *>(frame->data[2]), with * height/4);
+                }
                 av_frame_unref(frame);
                 av_frame_free(&frame);
+
                 break;
             }
             case AVMEDIA_TYPE_SUBTITLE: {
