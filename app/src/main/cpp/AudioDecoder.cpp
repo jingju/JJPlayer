@@ -72,8 +72,7 @@ int AudioDecoder::decodeAudioPacket(AVPacket *packet, AVFrame *frame) {
              codecContext->codec_type == 0 ? "video" : "audio");
 //            fflush(stdout);
 
-
-        LOGD("before write pcm");
+        LOGI("samplereate %3d %3d %s\n", codecContext->frame_number, codecContext->codec_type);
 
         //todo 写 pcm 数据 start ======
         int bytePerSample = av_get_bytes_per_sample(codecContext->sample_fmt);

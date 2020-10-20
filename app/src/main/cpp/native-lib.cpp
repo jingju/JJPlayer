@@ -76,3 +76,10 @@ Java_com_jingju_jjplayer_JJMediaPlayer_mSetDestYuvPath(JNIEnv *env, jobject thiz
     player->setDestFilePath(env, yuvPath,pcmPath);
 
 }
+
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_jingju_jjplayer_Remuxer_nRemux(JNIEnv *env, jobject thiz, jstring media_type) {
+    // TODO: implement nRemux()
+}

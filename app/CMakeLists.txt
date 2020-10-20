@@ -14,6 +14,7 @@ file(GLOB EGL_SRC_LIST ${PROJECT_SOURCE_DIR}/src/main/cpp/egl/*.cpp)
 file(GLOB VIDEO_RENDER_SRC_LIST ${PROJECT_SOURCE_DIR}/src/main/cpp/videorender/*.cpp)
 file(GLOB AUDIO_RENDER_SRC_LIST ${PROJECT_SOURCE_DIR}/src/main/cpp/audiorender/*.cpp)
 file(GLOB SOUND_TOUCH_SRC_LIST ${PROJECT_SOURCE_DIR}/src/main/cpp/soundtouch/*.cpp)
+file(GLOB REMUX_SRC_LIST ${PROJECT_SOURCE_DIR}/src/main/cpp/remux/*.cpp)
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
 # You can define multiple libraries, and CMake builds them for you.
@@ -32,7 +33,8 @@ add_library( # Sets the name of the library.
         ${SDL_SRC_LIST}
         ${VIDEO_RENDER_SRC_LIST}
         ${AUDIO_RENDER_SRC_LIST}
-        ${SOUND_TOUCH_SRC_LIST})
+        ${SOUND_TOUCH_SRC_LIST}
+        ${REMUX_SRC_LIST})
 #avcodec
 add_library(
         avcodec
@@ -186,6 +188,7 @@ include_directories(
         ${PATH_TO_MEDIACORE}/include/egl
         ${PATH_TO_MEDIACORE}/include/videorender
         ${PATH_TO_MEDIACORE}/include/soundtouch
+        ${PATH_TO_MEDIACORE}/include/remux
         ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/ffmpeg/include
         ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/x264/include
         ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/fdkaac/include
