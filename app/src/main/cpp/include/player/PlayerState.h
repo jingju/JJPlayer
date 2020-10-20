@@ -50,6 +50,9 @@
 #include <PacketQueue.h>
 #include "Decoder.h"
 #include "videorender/VideoRenderController.h"
+#include "VideoDecoder.h"
+#include "AudioDecoder.h"
+
 extern "C"{
 #include <libavutil/time.h>
 }
@@ -82,8 +85,8 @@ public:
     ANativeWindow *_window;
 
 
-    Decoder *mAudioDecoder= nullptr;
-    Decoder *mVideoDecoder= nullptr;
+    AudioDecoder *mAudioDecoder= nullptr;
+    VideoDecoder *mVideoDecoder= nullptr;
     Decoder *mSubtitleDecoder;
 
     //packetQueue都放在了decoder里面。

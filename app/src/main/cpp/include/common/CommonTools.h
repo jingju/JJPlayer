@@ -13,6 +13,7 @@
 #define INT16_MIN       -32768
 #define LOGI(...)  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+#define LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 typedef signed short SInt16;
 typedef unsigned char byte;
 #define ARRAY_LEN(a) (sizeof(a) / sizeof(a[0]))

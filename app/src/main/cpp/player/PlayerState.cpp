@@ -96,12 +96,12 @@ double PlayerState::getClock(Clock *c) {
  */
 int PlayerState::getMasterSyncType() {
     if (avSyncType == AV_SYNC_VIDEO_MASTER) {
-        if (mVideoDecoder->video_stream != nullptr)
+        if (mVideoDecoder->stream != nullptr)
             return AV_SYNC_VIDEO_MASTER;
         else
             return AV_SYNC_AUDIO_MASTER;
     } else if (avSyncType == AV_SYNC_AUDIO_MASTER) {
-        if (mAudioDecoder->audio_stream != nullptr)
+        if (mAudioDecoder->stream != nullptr)
             return AV_SYNC_AUDIO_MASTER;
         else
             return AV_SYNC_EXTERNAL_CLOCK;

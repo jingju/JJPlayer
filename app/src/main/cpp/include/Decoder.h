@@ -12,8 +12,8 @@
 #include <FrameQueue2.h>
 #include <fstream>
 #include <iostream>
-
-extern "C"{
+#include "CommonTools.h"
+extern "C" {
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
 #include <libavutil/imgutils.h>
@@ -28,6 +28,7 @@ extern "C"{
     av_packet_free(&pkt);
  */
 using namespace std;
+
 /**
  *  todo 最后抽象一个父类，将video decoder 和 audio decoder分开
  */
@@ -37,71 +38,61 @@ public:
 //    void* protocalParser;//解协议
 //    void* formatDemuxer;//解封装
 
-    int ret=0;
+    int ret = 0;
     int got_frame;
-    AVFormatContext* fmt_ctx;
+    AVFormatContext *fmtContext;
 
-    int video_stream_idx = -1;
-    int audio_stream_idx = -1;
-    int subtitle_stream_idx = -1;
-    AVCodecContext *video_dec_ctx = NULL, *audio_dec_ctx;
-    AVStream *video_stream = nullptr, *audio_stream = nullptr;
-    int refcount=0;
+    int streamIndex = -1;
 
-    int width, height;//视频帧宽高
-    enum AVPixelFormat pix_fmt;//图片的像素数据的格式
-    uint8_t *video_dst_data[4] = {NULL};
-    int      video_dst_linesize[4];
-    int video_dst_bufsize; //todo  一帧缓存的大小
+    AVCodecContext *codecContext = nullptr;
+    AVStream *stream = nullptr;
+    int refcount = 0;
+
     AVFrame *aFrame = NULL;//todo 待换成nullptr
-    AVFrame *vFrame=NULL;
-    AVPacket *pkt= nullptr;//全局使用的AVPacket;
+    AVFrame *vFrame = NULL;
+    AVPacket *pkt = nullptr;//全局使用的AVPacket;
 //    void* mDecoder;//解码
     //todo=====new ===== 删除上面多余的
-    AVCodecContext *codecContext;
-    PacketQueue  *packetQueue;
+    PacketQueue *packetQueue;
     std::thread decodeThread;
     FrameQueue *frameQueue;
 
-    bool  abortRequest;//停止解码
-    bool  isPending=false;
-
+    bool abortRequest;//停止解码
 
 
     //todo 新加的转换后的统一的
-    FrameQueue2* mFrameQueue2;
+    FrameQueue2 *mFrameQueue2;
 
     //audio
-    int64_t  next_pts=0;
+    int64_t next_pts = 0;
     AVRational next_pts_tb;//时间基
 
 
 
-   //裸数据保存的位置
-   const char * destDataFilePath= nullptr;
+    //裸数据保存的位置
+    const char *destDataFilePath = nullptr;
 
+    ofstream outFileStream;
 
 public:
     Decoder();
-    ~Decoder();
-    void init(AVCodecContext *codecContext,const char * destDataSavePath);
-    void closeFile();
-    bool isEOF();
 
+    ~Decoder();
+
+    void init(AVCodecContext *codecContext, const char *destDataSavePath);
+
+    void closeFile();
+
+    bool isEOF();
 
     int interrupt_cb(void *ctx);
 
-
-    int videoThread();
-    int audioThread();
     void release();
 
-
-
     //========todo new ======
-    void start(AVMediaType type);
-    void stop();
-    int decodePacketToFrame(AVPacket *pkt,AVFrame *frame,ofstream &out);
+    virtual void start() = 0;
+
+    virtual void stop() = 0;
 
 
 };

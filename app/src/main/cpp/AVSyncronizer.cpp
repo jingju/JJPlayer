@@ -10,8 +10,8 @@ AVSyncronizer::AVSyncronizer(PlayerState *playerState) {
 }
 
 void AVSyncronizer::initDecoder() {
-    mPlayerState->mAudioDecoder = new Decoder;
-    mPlayerState->mVideoDecoder = new Decoder;
+    mPlayerState->mAudioDecoder = new AudioDecoder;
+    mPlayerState->mVideoDecoder = new VideoDecoder;
 }
 
 /**
@@ -181,20 +181,21 @@ AVSyncronizer::streamComponentOpen(PlayerState *playerState, AVMediaType type, i
 
             } else {
                 mAudioController->start();
-                mPlayerState->mAudioDecoder->audio_stream_idx = streamIndex;
-                mPlayerState->mAudioDecoder->audio_stream = formatContext->streams[streamIndex];
+                mPlayerState->mAudioDecoder->streamIndex = streamIndex;
+                mPlayerState->mAudioDecoder->stream = formatContext->streams[streamIndex];
 //            mAudioDecoder->init(codecContext,&mPlayerState->mAudioQueue);
+                //子类调用父类方法
                 mPlayerState->mAudioDecoder->init(codecContext,mPlayerState->mDestPcmFilePath);
-                mPlayerState->mAudioDecoder->start(AVMEDIA_TYPE_AUDIO);
+                mPlayerState->mAudioDecoder->start();
             }
         }
             break;
         case AVMEDIA_TYPE_VIDEO:
-            mPlayerState->mVideoDecoder->video_stream_idx = streamIndex;
-            mPlayerState->mVideoDecoder->video_stream = formatContext->streams[streamIndex];
+            mPlayerState->mVideoDecoder->streamIndex = streamIndex;
+            mPlayerState->mVideoDecoder->stream = formatContext->streams[streamIndex];
             mPlayerState->mVideoDecoder->init(codecContext,mPlayerState->mDestYuvFilePath);
 //            mVideoDecoder->init(codecContext,&mPlayerState->mVideQueue);
-            mPlayerState->mVideoDecoder->start(AVMEDIA_TYPE_VIDEO);
+            mPlayerState->mVideoDecoder->start();
             break;
         default:
             break;
@@ -273,10 +274,14 @@ AVSyncronizer::streamComponentOpen(PlayerState *playerState, AVMediaType type, i
 int AVSyncronizer::videoRefreshThread() {
     initVideoRender();
     double remainingTime = 0.0;
+
+//    stream->avg_frame_rate
+
     while (!mPlayerState->abort_request) {
         //todo 这里的睡眠打到延迟播放的目的
         if (remainingTime > 0.0)
-            av_usleep((int) (int64_t) (remainingTime * 1000000.0));//todo 睡眠响应的时间再播放
+            av_usleep((int) (int64_t) (remainingTime* 1000000.0));//todo 睡眠响应的时间再播放
+            LOGD("remaninttime %lf",remainingTime);
         remainingTime = REFRESH_RATE;
         //todo 这些判断暂时不加
 //        if (is->show_mode != SHOW_MODE_NONE && (!is->paused || is->force_refresh))
@@ -297,15 +302,27 @@ void AVSyncronizer::videoRefresh(double *remainingTime) {
 
     double time=0.0;
     Frame *lastFrame= nullptr, *nextFrame= nullptr;
+    int64_t start=0;
 
 
-    if (mPlayerState->mVideoDecoder->video_stream != nullptr) {
-retry:
+    if (mPlayerState->mVideoDecoder->stream != nullptr) {
+
+        start = av_gettime_relative();
+        AVStream *stream=mPlayerState->mVideoDecoder->stream;
+        LOGD("remaninttime %d %d",mPlayerState->mVideoDecoder->stream->avg_frame_rate.den,
+             mPlayerState->mVideoDecoder->stream->avg_frame_rate.num);
+
+        *remainingTime=1/((double)stream->avg_frame_rate.num/(double)stream->avg_frame_rate.den);
+//        *remainingTime=0.023;
+
+
+
+    retry:
           //todo 尺寸暂时没有处理
 //        if (mPlayerState->mVideoDecoder->mFrameQueue2->getSize() == 0) {
 //            // nothing to do, no picture to display in the queue
 //        } else {
-            double currentDuration, duration, delay;
+         double currentDuration, duration, delay;
             /* dequeue the frame */
         //正在播放的帧
         lastFrame = mPlayerState->mVideoDecoder->mFrameQueue2->getLastFrame();
@@ -336,12 +353,13 @@ retry:
             time = av_gettime_relative() / 1000000.0;
             if (time < mPlayerState->frameTimer)
                 mPlayerState->frameTimer= time;
-            if (time < mPlayerState->frameTimer + delay) {
-                *remainingTime = FFMIN(mPlayerState->frameTimer + delay - time, *remainingTime);
-//                goto display;
-                //todo 这里直接结束就好了
-                return;
-            }
+            //todo 这里暂不进行音视频同步
+//            if (time < mPlayerState->frameTimer + delay) {
+//                *remainingTime = FFMIN(mPlayerState->frameTimer + delay - time, *remainingTime);
+////                goto display;
+//                //todo 这里直接结束就好了
+//                return;
+//            }
 
             mPlayerState->frameTimer += delay;
             if (delay > 0 && time - mPlayerState->frameTimer > AV_SYNC_THRESHOLD_MAX)
@@ -411,6 +429,8 @@ retry:
                 mRenderController->render(nextFrame->frame);
                 mPlayerState->mVideoDecoder->mFrameQueue2->wait_and_pop();
                 av_frame_free(&nextFrame->frame);
+            int64_t zone =av_gettime_relative()-start;
+            *remainingTime=*remainingTime-((double)zone/1000000);
 
 
 //    }
@@ -602,16 +622,16 @@ int AVSyncronizer::readThread() {
 //                            (double) (mPlayerState->startTime != AV_NOPTS_VALUE
 //                                      ? mPlayerState->startTime : 0) / 1000000
 //                            <= ((double) mPlayerState->duration / 1000000);
-        if (pkt->stream_index == mPlayerState->mAudioDecoder->audio_stream_idx) {
+        if (pkt->stream_index == mPlayerState->mAudioDecoder->streamIndex) {
             mPlayerState->mAudioDecoder->packetQueue->push(pkt1);
             LOGI("audio packet---");
             //todo 下面这个分支的所有条件的含义
-        } else if (pkt->stream_index == mPlayerState->mVideoDecoder->video_stream_idx) {
+        } else if (pkt->stream_index == mPlayerState->mVideoDecoder->streamIndex) {
 //            packet_queue_put(&is->videoq, pkt);
             mPlayerState->mVideoDecoder->packetQueue->push(pkt1);
             LOGI("video packet---");
 
-        } else if (pkt->stream_index == mPlayerState->mSubtitleDecoder->subtitle_stream_idx) {
+        } else if (pkt->stream_index == mPlayerState->mSubtitleDecoder->streamIndex) {
 //            packet_queue_put(&is->subtitleq, pkt);
             mPlayerState->mSubtitleDecoder->packetQueue->push(pkt1);
         } else {
