@@ -34,8 +34,8 @@ int AudioDecoder::decodeAudioPacket(AVPacket *packet, AVFrame *frame) {
     ret = avcodec_send_packet(codecContext, packet);
 
     if (ret < 0) {
-        LOGI("Error sending a packet for decoding %d  type %s\n", ret,
-             codecContext->codec_type == 0 ? "video" : "audio");
+//        LOGI("Error sending a packet for decoding %d  type %s\n", ret,
+//             codecContext->codec_type == 0 ? "video" : "audio");
 
         if (ret == AVERROR(EAGAIN)) {//不接受输入，必须输出完所有数据，才能重新读入
 //            av_packet_move_ref(pkt, packet);
@@ -71,8 +71,6 @@ int AudioDecoder::decodeAudioPacket(AVPacket *packet, AVFrame *frame) {
         LOGI("saving frame %3d %3d %s\n", codecContext->frame_number, codecContext->codec_type,
              codecContext->codec_type == 0 ? "video" : "audio");
 //            fflush(stdout);
-
-        LOGI("samplereate %3d %3d %s\n", codecContext->frame_number, codecContext->codec_type);
 
         //todo 写 pcm 数据 start ======
         int bytePerSample = av_get_bytes_per_sample(codecContext->sample_fmt);
