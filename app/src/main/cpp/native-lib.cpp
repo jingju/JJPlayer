@@ -1,8 +1,10 @@
 #include <jni.h>
 #include <string>
+#include <remux/Remuxer.h>
 #include "player/JJMediaPlayer.h"
 
 JJMediaPlayer *player;
+Remuxer * remuxer;
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_jingju_jjplayer_MainActivity_stringFromJNI(
@@ -80,6 +82,18 @@ Java_com_jingju_jjplayer_JJMediaPlayer_mSetDestYuvPath(JNIEnv *env, jobject thiz
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_jingju_jjplayer_Remuxer_nRemux(JNIEnv *env, jobject thiz, jstring media_type) {
+Java_com_jingju_jjplayer_Remuxer_nRemux(JNIEnv *env, jobject thiz, jstring media_type,jstring outpath) {
     // TODO: implement nRemux()
+    const char * mediaType = env->GetStringUTFChars(media_type, NULL);
+    const char * outPath = env->GetStringUTFChars(outpath, NULL);
+    if(NULL!=player){
+        remuxer=new Remuxer(player->mPlayerState);
+        remuxer->setVideoPaht(player->mPlayerState->mDestYuvFilePath);
+        remuxer->setAudioPath(player->mPlayerState->mDestPcmFilePath);
+//    remuxer->setOutputPath(outPath);
+        //todo 文件路径
+        remuxer->remux(mediaType,outPath);
+    }
 }
+
+//

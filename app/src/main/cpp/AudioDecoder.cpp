@@ -74,13 +74,14 @@ int AudioDecoder::decodeAudioPacket(AVPacket *packet, AVFrame *frame) {
 
         //todo 写 pcm 数据 start ======
         int bytePerSample = av_get_bytes_per_sample(codecContext->sample_fmt);
+
         if (frame->data[0] && frame->data[1]) {
 //                    //todo 这里得每个采样每个采样的拷贝
 //                    // Number of samples per channel in an audio frame.
             for (int i = 0; i < codecContext->frame_size; i++) {
-                outFileStream.write(reinterpret_cast<const char *>(frame->data[0]),
+                outFileStream.write(reinterpret_cast<const char *>(frame->data[0]+i*bytePerSample),
                                     bytePerSample);
-                outFileStream.write(reinterpret_cast<const char *>(frame->data[1]),
+                outFileStream.write(reinterpret_cast<const char *>(frame->data[1]+i*bytePerSample),
                                     bytePerSample);
             }
         } else if (frame->data[0]) {//这里直接拷贝

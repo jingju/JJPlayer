@@ -30,6 +30,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         System.loadLibrary("native-lib");
     }
 
+    private Remuxer remuxer;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,6 +43,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         decode.setOnClickListener(this);
         remux.setOnClickListener(this);
+        remuxer = new Remuxer();
 
 //        getBestSampleRate();
 
@@ -75,7 +78,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 MainActivity.this.startActivity(intent);
                 break;
             case R.id.remux:
-
+                 remuxer.remux("");//暂时传空
 
                 break;
         }

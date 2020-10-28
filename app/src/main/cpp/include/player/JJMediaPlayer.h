@@ -17,7 +17,7 @@
 #define MP_STATE_ASYNC_PREPARING    2
 
 class JJMediaPlayer {
-private:
+public:
     //消息循环线程
     PlayerState *mPlayerState;//播放器类
     AVSyncronizer *mAVSyncronizer;//音视频的同步类

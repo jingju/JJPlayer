@@ -81,12 +81,15 @@ int VideoDecoder::decodeVideoPacket(AVPacket *packet, AVFrame *frame) {
             LOGI("write yuv=====");
             int with = codecContext->width;
             int height = codecContext->height;
+            int size=with*height;
+
+
             outFileStream.write(reinterpret_cast<const char *>(frame->data[0]),
-                                with * height);
+                                size);
             outFileStream.write(reinterpret_cast<const char *>(frame->data[1]),
-                                with * height / 4);
+                                size / 4);
             outFileStream.write(reinterpret_cast<const char *>(frame->data[2]),
-                                with * height / 4);
+                                size / 4);
         }
         //todo  在写完的时候关闭流
         //=============write yuv data end==========

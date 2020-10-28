@@ -123,6 +123,10 @@ public:
     //todo 相关的初始化操作
 
     int abort_request=0;//todo 停止刷新
+
+
+    const char *mDestYuvFilePath= nullptr;
+    const char *mDestPcmFilePath= nullptr;
 public:
     /**
      *
@@ -154,8 +158,6 @@ public:
 
     void setDestYuvFilePath(const char *yuvPath,const char *pcmPath);
 
-    const char *mDestYuvFilePath= nullptr;
-    const char *mDestPcmFilePath= nullptr;
 };
 
 
