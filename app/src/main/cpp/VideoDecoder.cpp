@@ -83,13 +83,34 @@ int VideoDecoder::decodeVideoPacket(AVPacket *packet, AVFrame *frame) {
             int height = codecContext->height;
             int size=with*height;
 
+            int l1 = frame->linesize[0];
+            int l2 = frame->linesize[1];
+            int l3 = frame->linesize[2];
 
-            outFileStream.write(reinterpret_cast<const char *>(frame->data[0]),
-                                size);
-            outFileStream.write(reinterpret_cast<const char *>(frame->data[1]),
-                                size / 4);
-            outFileStream.write(reinterpret_cast<const char *>(frame->data[2]),
-                                size / 4);
+
+
+//            outFileStream.write(reinterpret_cast<const char *>(frame->data[0]),
+//                                size-16);
+//            outFileStream.write(reinterpret_cast<const char *>(frame->data[1]),
+//                                size / 4);
+//            outFileStream.write(reinterpret_cast<const char *>(frame->data[2]),
+//                                size / 4);
+
+            for(int i= 0 ; i < height ; i++)
+            {
+                outFileStream.write(reinterpret_cast<const char *>(frame->data[0] + l1 * i), with);
+            }
+
+            for(int i= 0 ; i < height/2 ; i++)
+            {
+                outFileStream.write(reinterpret_cast<const char *>(frame->data[1] + l2 * i), with/2);
+            }
+
+            for(int i= 0 ; i < height/2 ; i++)
+            {
+                outFileStream.write(reinterpret_cast<const char *>(frame->data[2] + l3 * i), with/2);
+            }
+
         }
         //todo  在写完的时候关闭流
         //=============write yuv data end==========
