@@ -631,10 +631,12 @@ int AVSyncronizer::readThread() {
             mPlayerState->mVideoDecoder->packetQueue->push(pkt1);
             LOGI("video packet---");
 
-        } else if (pkt->stream_index == mPlayerState->mSubtitleDecoder->streamIndex) {
-//            packet_queue_put(&is->subtitleq, pkt);
-            mPlayerState->mSubtitleDecoder->packetQueue->push(pkt1);
-        } else {
+        }
+//        else if (pkt->stream_index == mPlayerState->mSubtitleDecoder->streamIndex) {
+////            packet_queue_put(&is->subtitleq, pkt);
+//            mPlayerState->mSubtitleDecoder->packetQueue->push(pkt1);
+//        }
+        else {
             av_packet_unref(pkt);
         }
 
