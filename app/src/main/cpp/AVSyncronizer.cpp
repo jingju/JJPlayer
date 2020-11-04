@@ -645,6 +645,7 @@ int AVSyncronizer::readThread() {
         } else if (packet->stream_index == mPlayerState->mSubtitleDecoder->streamIndex) {
 //            packet_queue_put(&is->subtitleq, pkt);
             mPlayerState->mSubtitleDecoder->packetQueue->push(packet);
+
         }
 //        av_packet_free(&packet);
 
