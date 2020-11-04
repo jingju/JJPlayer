@@ -73,10 +73,9 @@ Java_com_jingju_jjplayer_JJMediaPlayer_nPrepareAsync(JNIEnv *env, jobject thiz) 
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_jingju_jjplayer_JJMediaPlayer_mSetDestYuvPath(JNIEnv *env, jobject thiz,
-                                                       jstring yuvPath,jstring pcmPath) {
+                                                       jstring yuvPath,jstring pcmPath,jstring outMediaFilePath) {
     // TODO: implement mSetDestYuvPath()
-    player->setDestFilePath(env, yuvPath,pcmPath);
-
+    player->setDestFilePath(env, yuvPath,pcmPath,outMediaFilePath);
 }
 
 
@@ -92,7 +91,7 @@ Java_com_jingju_jjplayer_Remuxer_nRemux(JNIEnv *env, jobject thiz, jstring media
         remuxer->setAudioPath(player->mPlayerState->mDestPcmFilePath);
 //    remuxer->setOutputPath(outPath);
         //todo 文件路径
-        remuxer->remux(mediaType,outPath);
+        remuxer->start(mediaType, outPath);
     }
 }
 

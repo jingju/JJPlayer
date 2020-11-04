@@ -156,4 +156,12 @@ void PlayerState::setDestYuvFilePath(const char *yuvFilePath,const char *pcmFile
     mDestPcmFilePath=pcmFilePath;
 
 }
+void PlayerState::setDestMediaPath(const char *outMediaPath) {
+    mDestMedianPath=outMediaPath;
+}
 
+void PlayerState::setEndFile(int isEnd) {
+    endOfFile=isEnd;
+    mVideoDecoder->endOfFile=1;
+    mAudioDecoder->endOfFile=1;
+}

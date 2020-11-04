@@ -5,16 +5,13 @@
 #include "player/PlayerState.h"
 #include <stddef.h>
 #include <random>
-#include "common/CommonTools.h"
-
 #define LOG_TAG "VideoDecoder"
 
 #include "FrameQueue2.h"
-
 Decoder::Decoder() {
     packetQueue = new PacketQueue;
-    frameQueue = new FrameQueue;
-    mFrameQueue2 = new FrameQueue2;
+    mDecodeFrameQueue2 = new FrameQueue2;
+    mEncodeFrameQueue=new AVFrameQueue;
     //todo 暂不处理
 //    isPending = 0;
 //    pkt = av_packet_alloc();
@@ -22,8 +19,8 @@ Decoder::Decoder() {
 
 Decoder::~Decoder() {
     delete packetQueue;
-    delete frameQueue;
-    delete mFrameQueue2;
+    delete mDecodeFrameQueue2;
+    delete mEncodeFrameQueue;
 }
 
 /** connect time out call back*/

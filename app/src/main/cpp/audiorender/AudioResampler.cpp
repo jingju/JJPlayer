@@ -266,7 +266,7 @@ void AudioResampler::pcmQueueCallback(uint8_t *stream, int len) {
         if (audioState->bufferIndex >= audioState->bufferSize) {
 //            bufferSize = audioFrameResample();
 //            AVFrame *frame =playerState->mAudioDecoder->frameQueue->wait_and_pop();
-            Frame *frame =playerState->mAudioDecoder->mFrameQueue2->wait_and_pop();
+            Frame *frame =playerState->mAudioDecoder->mDecodeFrameQueue2->wait_and_pop();
             bufferSize = resample(frame->frame);
 //            bufferSize = resample(frame);
             if (bufferSize < 0) {

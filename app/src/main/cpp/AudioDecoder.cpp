@@ -79,10 +79,12 @@ int AudioDecoder::decodeAudioPacket(AVPacket *packet, AVFrame *frame) {
 //                    //todo 这里得每个采样每个采样的拷贝
 //                    // Number of samples per channel in an audio frame.
             for (int i = 0; i < codecContext->frame_size; i++) {
-                outFileStream.write(reinterpret_cast<const char *>(frame->data[0]+i*bytePerSample),
-                                    bytePerSample);
-                outFileStream.write(reinterpret_cast<const char *>(frame->data[1]+i*bytePerSample),
-                                    bytePerSample);
+                outFileStream.write(
+                        reinterpret_cast<const char *>(frame->data[0] + i * bytePerSample),
+                        bytePerSample);
+                outFileStream.write(
+                        reinterpret_cast<const char *>(frame->data[1] + i * bytePerSample),
+                        bytePerSample);
             }
         } else if (frame->data[0]) {//这里直接拷贝
             outFileStream.write(reinterpret_cast<const char *>(frame->data[0]),
@@ -93,7 +95,7 @@ int AudioDecoder::decodeAudioPacket(AVPacket *packet, AVFrame *frame) {
         // 写 pcm 数据 end =========
 
 //=============================todo=== 重新计算Frame的时间戳==========
-        AVRational tb = {1, 44100};//时间基
+//        AVRational tb = {1, 44100};//时间基
         LOGD("avrational======");
 //
 //                if (frame->pts != AV_NOPTS_VALUE) {
@@ -108,17 +110,22 @@ int AudioDecoder::decodeAudioPacket(AVPacket *packet, AVFrame *frame) {
 //                    next_pts_tb = tb;
 //                }
         Frame *audioframe = (Frame *) malloc(sizeof(Frame));
-        audioframe->frame = av_frame_alloc();
+//        audioframe->frame = av_frame_alloc();
 //                audioframe->pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
 //                audioframe->pos = frame->pkt_pos;
 ////                    audioframe->serial = is->auddec.pkt_serial;
-        av_frame_unref(frame);
-        av_frame_move_ref(audioframe->frame, frame);
+//        av_frame_unref(frame);
+//        av_frame_move_ref(audioframe->frame, frame);
+        audioframe->frame=av_frame_clone(frame);
 //                audioframe->duration = av_q2d((AVRational) {frame->nb_samples, frame->sample_rate});
 //
-        mFrameQueue2->push(audioframe);
-        av_frame_free(&frame);
+        mDecodeFrameQueue2->push(audioframe);
 
+        //创建编码的AVFrame
+        AVFrame *frameRemux=av_frame_alloc();
+        av_frame_ref(frameRemux,frame);
+        mEncodeFrameQueue->push(frameRemux);
+        av_frame_free(&frame);
 //==============================todo==============================
 //                    frameQueue->push(frame);
 //                    //todo 转换成通用的数据保存起来
@@ -147,9 +154,9 @@ int AudioDecoder::decodeAudioPacket(AVPacket *packet, AVFrame *frame) {
 ////                    mFrameQueue2->push(audioframe);
 ////                    av_frame_unref(frame);
 
-        }
-        av_packet_free(&packet);
-        return ret;
+    }
+    av_packet_free(&packet);
+    return ret;
 }
 
 int AudioDecoder::audioThread() {
@@ -165,7 +172,12 @@ int AudioDecoder::audioThread() {
 
     for (;;) {
 
-        mutex.lock();
+//        mutex.lock();
+        if(endOfFile){
+            if(packetQueue->getSize()==0){
+                return 1;
+            }
+        }
         AVPacket *packet = nullptr;
 //        if (isPending) {
 //            av_packet_move_ref(packet, pkt);
@@ -181,7 +193,7 @@ int AudioDecoder::audioThread() {
 //            av_packet_free(&pkt);
 //            return ret;
 //        }
-        mutex.unlock();
+//        mutex.unlock();
 
     }
 

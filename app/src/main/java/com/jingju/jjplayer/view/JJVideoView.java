@@ -100,6 +100,7 @@ public class JJVideoView extends FrameLayout implements MediaController.MediaPla
     private Map<String, String> mHeaders;
     private String mYuvFileUri;
     private String mPcmFileUri;
+    private String mOutMediaFilePath;
 
 
     public JJVideoView(Context context) {
@@ -328,7 +329,7 @@ public class JJVideoView extends FrameLayout implements MediaController.MediaPla
 //                mMediaPlayer.setSourcePath(mAppContext, mUri, mHeaders);
 //            } else {
                 mMediaPlayer.setDataSource(mUri.toString());
-                mMediaPlayer.setDestFilePath(mYuvFileUri, mPcmFileUri);
+                mMediaPlayer.setDestFilePath(mYuvFileUri, mPcmFileUri,mOutMediaFilePath);
 //            }
             bindSurfaceHolder(mMediaPlayer, mSurfaceHolder);
             mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
@@ -422,9 +423,10 @@ public class JJVideoView extends FrameLayout implements MediaController.MediaPla
         return 0;
     }
 
-    public void setDestFilePath(String yuvFileUri, String pcmFileUri) {
+    public void setDestFilePath(String yuvFileUri, String pcmFileUri,String outMediaFilePath) {
 
         this.mYuvFileUri =yuvFileUri;
         this.mPcmFileUri=pcmFileUri;
+        this.mOutMediaFilePath=outMediaFilePath;
     }
 }

@@ -10,7 +10,7 @@ Remuxer::Remuxer(PlayerState *playerState) {
 
 Remuxer::~Remuxer() {}
 
-int Remuxer::remux(const char *mediaType, const char *outFileName) {
+int Remuxer::start(const char *mediaType, const char *outFileName) {
     /**
      * 创建基本全局格式
      *
@@ -19,8 +19,6 @@ int Remuxer::remux(const char *mediaType, const char *outFileName) {
      * 写如到对应的流
      *
      */
-
-    av_register_all();
     OutputStream video_st = {0}, audio_st = {0};
     AVOutputFormat *outFmt;
 
@@ -151,6 +149,23 @@ void Remuxer::writeTrailer(OutputStream &video_st, OutputStream &audio_st,
 
 int Remuxer::addStream(OutputStream &outSream, AVCodec **codec,
                        AVCodecID codecId) {
+    //todo 测试
+    avcodec_register_all();
+   const AVCodec *codec2=NULL;
+   AVCodec *codec3=NULL;
+
+//    while(av_codec_next(codec2)!=NULL){
+//       AVCodec *codec3= av_codec_next(codec2);
+//        LOGI("find codec '%d'\n",codec2->id);
+//
+//    };
+
+    while((codec2=av_codec_next(codec2))!=NULL){
+        LOGI("find codec '%s'\n",codec2->name);
+    }
+
+
+
     AVCodecContext *c;
     int i;
 
@@ -315,37 +330,37 @@ Remuxer::writeAudioFrame(AVFormatContext *fmtContext, AVFrame *frame) {
 
     //todo 这里根据设置好的期望的数值进行重新采样
 
-    if (frame) {
-        /* convert samples from native format to destination codec format, using the resampler */
-        /* compute destination number of samples */
-        dst_nb_samples = av_rescale_rnd(
-                swr_get_delay(audioOutStream.swr_ctx, c->sample_rate) + frame->nb_samples,
-                c->sample_rate, c->sample_rate, AV_ROUND_UP);
-        av_assert0(dst_nb_samples == frame->nb_samples);
-
-        /* when we pass a frame to the encoder, it may keep a reference to it
-         * internally;
-         * make sure we do not overwrite it here
-         */
-        ret = av_frame_make_writable(audioOutStream.frame);
-        if (ret < 0)
-            return false;
-
-        /* convert to destination format */
-        ret = swr_convert(audioOutStream.swr_ctx,
-                          audioOutStream.frame->data, dst_nb_samples,
-                          (const uint8_t **) frame->data, frame->nb_samples);
-        if (ret < 0) {
-            LOGI("Error while converting\n");
-//            fprintf(stderr, "Error while converting\n");
-            return false;
-        }
-        frame = audioOutStream.frame;
-
-        frame->pts = av_rescale_q(audioOutStream.samples_count, (AVRational) {1, c->sample_rate},
-                                  c->time_base);
-        audioOutStream.samples_count += dst_nb_samples;
-    }
+//    if (frame) {
+//        /* convert samples from native format to destination codec format, using the resampler */
+//        /* compute destination number of samples */
+//        dst_nb_samples = av_rescale_rnd(
+//                swr_get_delay(audioOutStream.swr_ctx, c->sample_rate) + frame->nb_samples,
+//                c->sample_rate, c->sample_rate, AV_ROUND_UP);
+//        av_assert0(dst_nb_samples == frame->nb_samples);
+//
+//        /* when we pass a frame to the encoder, it may keep a reference to it
+//         * internally;
+//         * make sure we do not overwrite it here
+//         */
+//        ret = av_frame_make_writable(audioOutStream.frame);
+//        if (ret < 0)
+//            return false;
+//
+//        /* convert to destination format */
+//        ret = swr_convert(audioOutStream.swr_ctx,
+//                          audioOutStream.frame->data, dst_nb_samples,
+//                          (const uint8_t **) frame->data, frame->nb_samples);
+//        if (ret < 0) {
+//            LOGI("Error while converting\n");
+////            fprintf(stderr, "Error while converting\n");
+//            return false;
+//        }
+//        frame = audioOutStream.frame;
+//
+//        frame->pts = av_rescale_q(audioOutStream.samples_count, (AVRational) {1, c->sample_rate},
+//                                  c->time_base);
+//        audioOutStream.samples_count += dst_nb_samples;
+//    }
     //todo 这里替换成新的api
 
     //====todo start=========encode audio==================
@@ -367,7 +382,7 @@ Remuxer::writeAudioFrame(AVFormatContext *fmtContext, AVFrame *frame) {
         if (ret == AVERROR(EAGAIN)) {
             isPendingAudio = true;
             return false;
-        }else if (ret < 0) {
+        } else if (ret < 0) {
             LOGI("Error encoding audio frame\n");
             return false;
         }
@@ -472,6 +487,10 @@ void Remuxer::messageLoop() {
         AVMessage *message = getMessage();
         int status = message->what;
         switch (status) {
+            case END_OF_FILE:
+                LOGI("file read finish");
+                abortEncode=1;
+                break;
             case VIDEO_WRITE_SUCCESS:
                 LOGI("video write success");
                 haseVideo = 1;
@@ -513,46 +532,33 @@ void Remuxer::messageLoop() {
  */
 bool Remuxer::videoWrite() {
     LOGD("start write video ");
-    AVCodecContext *codecContext = mPlayerState->mVideoDecoder->codecContext;
-    int ySize = codecContext->width * codecContext->height;
-    int uSize = codecContext->width * codecContext->height / 4;
-    int vSize = codecContext->width * codecContext->height / 4;
-    vector<int> sizes;
-    sizes.push_back(ySize);
-    sizes.push_back(uSize);
-    sizes.push_back(vSize);
     ifstream inStream(videoPath, ios::binary);
     if (inStream.is_open()) {
         while (true) {
-//            mMutext.lock();
             readWrite:
-            AVFrame *frame = allocVideoFrame(codecContext->pix_fmt, codecContext->width,
-                                             codecContext->height);
-            //循环读取一帧数据
-
-            for (int i = 0; i < sizes.size(); ++i) {
-                inStream.read(reinterpret_cast<char *>(frame->data[i]), sizes[i]);
-                if (inStream.eof()) {
+            //todo 从frame队列中取数据，然后编码
+            if(mPlayerState->endOfFile){
+                if(mPlayerState->mVideoDecoder->mEncodeFrameQueue->getSize()==0){
                     changeState(VIDEO_WRITE_SUCCESS);
                     return true;
                 }
             }
             LOGI("write video frame");
+            AVFrame *frame = mPlayerState->mVideoDecoder->mEncodeFrameQueue->wait_and_pop();
             bool ret = writeVideoFrame(frame);
             if (!ret) {
                 if (isPendingVideo) {//
-                    isPendingVideo= false;
+                    isPendingVideo = false;
                     av_frame_free(&frame);
                     goto readWrite;
                 } else {
                     av_frame_free(&frame);
                     changeState(VIDEO_WRITE_ERROR);
-//                    mMutext.unlock();
                     return false;
                 }
             }
+
             av_frame_free(&frame);
-//            mMutext.unlock();
         }
     } else {
         changeState(VIDEO_WRITE_ERROR);
@@ -630,35 +636,19 @@ bool Remuxer::audioWrite() {
 
     AVCodecContext *codecContext = mPlayerState->mAudioDecoder->codecContext;
     ifstream inStream(audioPath, ios::binary);
-    int pts = 0;
     if (inStream.is_open()) {
         while (true) {
-//            mMutext2.lock();
             audioWrite:
-            AVFrame *frame = allocAudioFrame(codecContext->sample_fmt, codecContext->channel_layout,
-                                             codecContext->sample_rate, codecContext->frame_size);
-            //循环读取一帧数据
-            int isPalanar = av_sample_fmt_is_planar(codecContext->sample_fmt);
-            int bytePerSample = av_get_bytes_per_sample(codecContext->sample_fmt);
-            int samplesPerFrame = codecContext->frame_size;
-
-            for (int i = 0; i < samplesPerFrame; ++i) {
-                if (isPalanar) {
-                    inStream.read(reinterpret_cast<char *>(frame->data[0]), bytePerSample);
-                    inStream.read(reinterpret_cast<char *>(frame->data[1]), bytePerSample);
-                } else {
-                    inStream.read(reinterpret_cast<char *>(frame->data[0]), bytePerSample * 2);
-                }
-                //断读取到的结尾并结束合成
-                if (inStream.eof()) {
-                    changeState(AUDIO_WRITE_SUCCESS);
+            if(mPlayerState->endOfFile){
+                if(mPlayerState->mVideoDecoder->mEncodeFrameQueue->getSize()==0){
+                    changeState(VIDEO_WRITE_SUCCESS);
                     return true;
                 }
             }
-            frame->pts = pts;
+            AVFrame *frame = mPlayerState->mVideoDecoder->mEncodeFrameQueue->wait_and_pop();
+            frame->pkt_size;
             LOGI("write audio frame");
             bool ret = writeAudioFrame(fmtContext, frame);
-            pts++;
             if (!ret) {
                 if (isPendingAudio) {//
                     isPendingAudio = false;
@@ -667,12 +657,10 @@ bool Remuxer::audioWrite() {
                 } else {
                     changeState(AUDIO_WRITE_ERROR);
                     av_frame_free(&frame);
-//                    mMutext2.unlock();
                     return false;
                 }
             }
             av_frame_free(&frame);
-//            mMutext2.unlock();
         }
     } else {
         changeState(AUDIO_WRITE_ERROR);
@@ -707,31 +695,29 @@ Remuxer::writeVideoFrame(AVFrame *frame) {
 
     av_init_packet(&pkt);
 
-
-    AVCodecContext *srcContext = mPlayerState->mVideoDecoder->codecContext;
     /* when we pass a frame to the encoder, it may keep a reference to it
      * internally; make sure we do not overwrite it here */
-    if (av_frame_make_writable(videoOutStream.frame) < 0)
-        return false;
+//    if (av_frame_make_writable(videoOutStream.frame) < 0)
+//        return false;
 
 //    if (c->pix_fmt != AV_PIX_FMT_YUV420P) {
     /* as we only generate a YUV420P picture, we must convert it
      * to the codec pixel format if needed */
-    if (!videoOutStream.sws_ctx) {
-        videoOutStream.sws_ctx = sws_getContext(srcContext->width, srcContext->height,
-                                                mPlayerState->mVideoDecoder->pix_fmt,
-                                                c->width, c->height,
-                                                c->pix_fmt,
-                                                SCALE_FLAGS, NULL, NULL, NULL);
-        if (!videoOutStream.sws_ctx) {
-            fprintf(stderr,
-                    "Could not initialize the conversion context\n");
-            return false;
-        }
-    }
-    sws_scale(videoOutStream.sws_ctx, (const uint8_t *const *) frame->data,
-              frame->linesize, 0, c->height, videoOutStream.frame->data,
-              videoOutStream.frame->linesize);
+//    if (!videoOutStream.sws_ctx) {
+//        videoOutStream.sws_ctx = sws_getContext(c->width, c.->height,
+//                                                mPlayerState->mVideoDecoder->pix_fmt,
+//                                                c->width, c->height,
+//                                                c->pix_fmt,
+//                                                SCALE_FLAGS, NULL, NULL, NULL);
+//        if (!videoOutStream.sws_ctx) {
+//            fprintf(stderr,
+//                    "Could not initialize the conversion context\n");
+//            return false;
+//        }
+//    }
+//    sws_scale(videoOutStream.sws_ctx, (const uint8_t *const *) frame->data,
+//              frame->linesize, 0, c->height, videoOutStream.frame->data,
+//              videoOutStream.frame->linesize);
 //    } else {
 //        fill_yuv_image(ost->frame, ost->next_pts, c->width, c->height);
 //
@@ -744,9 +730,9 @@ Remuxer::writeVideoFrame(AVFrame *frame) {
 
     /* encode the image */
     //=======todo ======编码流程====start======
-    ret = avcodec_send_frame(c, videoOutStream.frame);
+    ret = avcodec_send_frame(c, frame);
     if (ret < 0) {
-        LOGI("Error sending a frame for encoding (ret= %5d)\n",ret);
+        LOGI("Error sending a frame for encoding (ret= %5d)\n", ret);
         //todo 返回错误进行处理
         return false;
     }
@@ -754,13 +740,13 @@ Remuxer::writeVideoFrame(AVFrame *frame) {
     while (ret >= 0) {
         ret = avcodec_receive_packet(c, &pkt);
         if (ret == AVERROR(EAGAIN)) {
-            isPendingVideo= true;
+            isPendingVideo = true;
             return false;
         } else if (ret < 0) {
             LOGI("Error during encoding\n");
             return false;
         }
-        printf("Write packet %3" PRId64 " (size=%5d)\n", pkt.pts, pkt.size);
+        printf("Write packet %3" PRId64" (size=%5d)\n", pkt.pts, pkt.size);
         //todo  写数据
         ret = writeFrame(&c->time_base, videoOutStream.st, &pkt);
         LOGI("write video frame success");

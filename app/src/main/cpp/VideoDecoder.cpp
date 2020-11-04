@@ -13,7 +13,6 @@ void VideoDecoder::start() {
 }
 
 
-
 void VideoDecoder::stop() {
 
 
@@ -81,47 +80,35 @@ int VideoDecoder::decodeVideoPacket(AVPacket *packet, AVFrame *frame) {
             LOGI("write yuv=====");
             int with = codecContext->width;
             int height = codecContext->height;
-            int size=with*height;
 
             int l1 = frame->linesize[0];
             int l2 = frame->linesize[1];
             int l3 = frame->linesize[2];
 
-
-
-//            outFileStream.write(reinterpret_cast<const char *>(frame->data[0]),
-//                                size-16);
-//            outFileStream.write(reinterpret_cast<const char *>(frame->data[1]),
-//                                size / 4);
-//            outFileStream.write(reinterpret_cast<const char *>(frame->data[2]),
-//                                size / 4);
-
-            for(int i= 0 ; i < height ; i++)
-            {
+            for (int i = 0; i < height; i++) {
                 outFileStream.write(reinterpret_cast<const char *>(frame->data[0] + l1 * i), with);
             }
 
-            for(int i= 0 ; i < height/2 ; i++)
-            {
-                outFileStream.write(reinterpret_cast<const char *>(frame->data[1] + l2 * i), with/2);
+            for (int i = 0; i < height / 2; i++) {
+                outFileStream.write(reinterpret_cast<const char *>(frame->data[1] + l2 * i),
+                                    with / 2);
             }
 
-            for(int i= 0 ; i < height/2 ; i++)
-            {
-                outFileStream.write(reinterpret_cast<const char *>(frame->data[2] + l3 * i), with/2);
+            for (int i = 0; i < height / 2; i++) {
+                outFileStream.write(reinterpret_cast<const char *>(frame->data[2] + l3 * i),
+                                    with / 2);
             }
 
         }
         //todo  在写完的时候关闭流
         //=============write yuv data end==========
 
-
         //todo 暂时注释掉
 //                    frameQueue->push(frame);
 
         //todo 转换成通用的数据保存起来
         Frame *videoFrame = (Frame *) malloc(sizeof(Frame));
-        videoFrame->frame = av_frame_alloc();
+//        videoFrame->frame = av_frame_alloc();
         videoFrame->pts =
                 frame->pts == AV_NOPTS_VALUE ? NAN : av_q2d(stream->time_base) *
                                                      frame->pts;//播放时间s
@@ -131,8 +118,9 @@ int VideoDecoder::decodeVideoPacket(AVPacket *packet, AVFrame *frame) {
         //todo 保存对应的frame到队列中
         videoFrame->pos = frame->pkt_pos;
 
-        av_frame_unref(videoFrame->frame);
-        av_frame_move_ref(videoFrame->frame, frame);//会将原来的数据完全拷贝到新的AVFrame,之前的数据清零
+        videoFrame->frame=av_frame_clone(frame);
+//        av_frame_unref(videoFrame->frame);
+//        av_frame_move_ref(videoFrame->frame, frame);//会将原来的数据完全拷贝到新的AVFrame,之前的数据清零
         //序列号的处理
 //                    vp->serial = serial;
         //todo 以下参数的处理暂时不加
@@ -141,8 +129,13 @@ int VideoDecoder::decodeVideoPacket(AVPacket *packet, AVFrame *frame) {
 //                    vp->bmp->sar_den = vp->sar.den;
 
         //todo push的时候，应该内部会重新创建变量，所以不用担心内存释放后，无值问题
-        mFrameQueue2->push(videoFrame);
+        mDecodeFrameQueue2->push(videoFrame);
 //                av_frame_unref(frame);
+        //创建编码的AVFrame
+        AVFrame *frameRemux = av_frame_alloc();
+        av_frame_ref(frameRemux, frame);
+        mEncodeFrameQueue->push(frameRemux);
+
         av_frame_free(&frame);
 
 
@@ -150,7 +143,7 @@ int VideoDecoder::decodeVideoPacket(AVPacket *packet, AVFrame *frame) {
 //        if(pkt!= nullptr){
 //            av_packet_unref(pkt);
 //        }
-    //
+        //
 //            if (codecContext->codec_type == AVMEDIA_TYPE_VIDEO) {
 //                LOGI("video frame");
 //                //todo 保存到视频帧保存到视频队列，从视频队列取出后，处理后显示
@@ -190,11 +183,16 @@ int VideoDecoder::videoThread() {
 
     for (;;) {
 
-        mutex.lock();
+//        mutex.lock();
 //        if (isPending) {
 //            av_packet_move_ref(packet, pkt);
 //            isPending = false;
 //        } else {
+        if(endOfFile){
+            if(packetQueue->getSize()==0){
+                return 1;
+            }
+        }
         packet = packetQueue->waitAndPop();
 //        }
         if (abortRequest) {
@@ -202,7 +200,7 @@ int VideoDecoder::videoThread() {
         }
         LOGD("before decode video");
         ret = decodeVideoPacket(packet, vFrame);
-        mutex.unlock();
+//        mutex.unlock();
 //        if(ret<0){
 //            av_frame_free(&vFrame);
 //            av_packet_free(&pkt);

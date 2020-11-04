@@ -9,14 +9,14 @@
 #include <queue>
 
 extern "C"{
-#include "../thirdlib/ffmpeg/include/libavcodec/avcodec.h"
+#include "libavcodec/avcodec.h"
 };
 
 class PacketQueue {
 private:
     std::mutex mMutex;
     std::condition_variable mCondition;
-    std::queue<AVPacket> mQueue;
+    std::queue<AVPacket*> mQueue;
 public:
     int mNbPackets;
     int mSize;
@@ -28,7 +28,7 @@ public:
     void start();
     int abort();
     void flush();
-    int push(AVPacket packet);
+    int push(AVPacket* packet);
     int pushNullPackets(int streamIndex);
     AVPacket * waitAndPop();
     int getSize();

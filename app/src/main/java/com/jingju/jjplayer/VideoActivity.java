@@ -19,6 +19,9 @@ public class VideoActivity extends AppCompatActivity implements PermissionCallba
     private String uri= Environment.getExternalStorageDirectory().getAbsolutePath()+"/playertest/playertest.mp4";
     private String mOutYuvUri = Environment.getExternalStorageDirectory().getAbsolutePath()+"/playertest/playertest.yuv";
     private String mOutPcmUri= Environment.getExternalStorageDirectory().getAbsolutePath()+"/playertest/playertest.pcm";
+
+    private String mOutFilePath= Environment.getExternalStorageDirectory().getAbsolutePath()+"/playertest/out.webm";
+
     private ActivityPermissionDispatcher dispatcher;
     //    = th()+ "http://devimages.apple.com.edgekey.net/streaming/examples/bipbop_4x3/bipbop_4x3_variant.m3u8";
 
@@ -42,7 +45,7 @@ public class VideoActivity extends AppCompatActivity implements PermissionCallba
 
         mVideoView = findViewById(R.id.video_view);
         // TODO: 2020/5/11 获取到video path
-        mVideoView.setDestFilePath(mOutYuvUri,mOutPcmUri);
+        mVideoView.setDestFilePath(mOutYuvUri,mOutPcmUri,mOutFilePath);
         mVideoView.setVideoPath(uri);
 
 

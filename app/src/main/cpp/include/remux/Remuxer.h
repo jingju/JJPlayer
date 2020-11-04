@@ -26,6 +26,7 @@ extern "C" {
 #define VIDEO_WRITE_ERROR   2
 #define AUDIO_WRITE_SUCCESS 3
 #define AUDIO_WRITE_ERROR   4
+#define END_OF_FILE   5
 
 
 //todo 这里待去掉，换成传参的形式
@@ -73,6 +74,7 @@ public:
     mutex mMutext2;
     bool isPendingVideo=false;//编码缓冲区未填man
     bool isPendingAudio=false;//编码缓冲区未填man
+    int abortEncode=0;
 
 public:
 
@@ -80,7 +82,7 @@ public:
 
     ~Remuxer();
 
-    int remux(const char *mediaType, const char *outFileName);
+    int start(const char *mediaType, const char *outFileName);
 
     int addStream(OutputStream &outFmtContext, AVCodec **pCodec, AVCodecID id);
 

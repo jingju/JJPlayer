@@ -55,7 +55,10 @@ void AVSyncronizer::streamOpen() {
     //===================================
     //todo 初始化解码器
     initDecoder();
-    //todo 初始化video audio 和 ext 实际时间的时钟
+    //todo 初始化转封装工具类
+//    remuxer= new Remuxer(mPlayerState);
+//    remuxer->start("",mPlayerState->mDestMedianPath);
+//    //todo 初始化video audio 和 ext 实际时间的时钟
     mPlayerState->initAllClock();
     //todo 初始化视频刷新线程
     mVideoRefreshThread = std::thread(&AVSyncronizer::videoRefreshThread, this);
@@ -238,7 +241,7 @@ AVSyncronizer::streamComponentOpen(PlayerState *playerState, AVMediaType type, i
 //        AVFrame *frame = mPlayerState->mVideoDecoder->frameQueue->wait_and_pop();
 //        //todo 计算渲染时间
 //        //=======================================================================
-//        Frame* mFrame=mPlayerState->mVideoDecoder->mFrameQueue2->wait_and_pop();
+//        Frame* mFrame=mPlayerState->mVideoDecoder->mDecodeFrameQueue2->wait_and_pop();
 //
 //
 //
@@ -319,15 +322,15 @@ void AVSyncronizer::videoRefresh(double *remainingTime) {
 
     retry:
           //todo 尺寸暂时没有处理
-//        if (mPlayerState->mVideoDecoder->mFrameQueue2->getSize() == 0) {
+//        if (mPlayerState->mVideoDecoder->mDecodeFrameQueue2->getSize() == 0) {
 //            // nothing to do, no picture to display in the queue
 //        } else {
          double currentDuration, duration, delay;
             /* dequeue the frame */
         //正在播放的帧
-        lastFrame = mPlayerState->mVideoDecoder->mFrameQueue2->getLastFrame();
+        lastFrame = mPlayerState->mVideoDecoder->mDecodeFrameQueue2->getLastFrame();
         //将要播放的帧，如果，没有播放，责不删除，
-        nextFrame = mPlayerState->mVideoDecoder->mFrameQueue2->wait_and_get_front();
+        nextFrame = mPlayerState->mVideoDecoder->mDecodeFrameQueue2->wait_and_get_front();
         //todo 找出下一帧
 
             //todo 暂时不处理，最后在进行序列号的赋值的处理
@@ -427,7 +430,7 @@ void AVSyncronizer::videoRefresh(double *remainingTime) {
             if(nextFrame!= nullptr)
                 //todo 真正的播放完一帧，再去删除这一帧
                 mRenderController->render(nextFrame->frame);
-                mPlayerState->mVideoDecoder->mFrameQueue2->wait_and_pop();
+                mPlayerState->mVideoDecoder->mDecodeFrameQueue2->wait_and_pop();
                 av_frame_free(&nextFrame->frame);
             int64_t zone =av_gettime_relative()-start;
             *remainingTime=*remainingTime-((double)zone/1000000);
@@ -447,12 +450,6 @@ int AVSyncronizer::readThread() {
     int pkt_in_play_range = 0;
     int64_t pkt_ts;
     //todo 一些初始化工作
-
-    /* initialize packet, set data to NULL, let the demuxer fill it */
-    av_init_packet(&pkt1);
-    pkt1.data = NULL;
-    pkt1.size = 0;
-
     /**
      * todo 等待的互斥量的初始化mutex
      *      最近的video_stream的初始化
@@ -461,9 +458,8 @@ int AVSyncronizer::readThread() {
      *
      *      AVFormateContext的申请
      */
-    //todo 初始化egl相关
-//    initVideoRender();
-    //todo 解码流程暂时注释掉
+
+
     // ========================
 
     int ret = 0;
@@ -517,6 +513,7 @@ int AVSyncronizer::readThread() {
         return -1;
     }
 
+
     //todo 打开视频组件相关
     streamComponentOpen(mPlayerState, AVMEDIA_TYPE_VIDEO, videoIndex);
 
@@ -539,8 +536,22 @@ int AVSyncronizer::readThread() {
     for (;;) {
         //todo 一些播放器状态的处理。
         int ret = 0;
-        ret = av_read_frame(formatContext, pkt);
+       AVPacket * packet=av_packet_alloc();
+        ret = av_read_frame(formatContext, packet);
         if (ret < 0) {
+            if(ret=AVERROR_EOF){//结束了了
+                /**
+                 * todo 关闭相关资源
+                 *
+                 */
+                 mPlayerState->setEndFile(1);
+                return 1;
+            }
+
+
+
+
+
             //读完了，或者读取错误。
             int pb_eof = 0;
             int pb_error = 0;
@@ -622,21 +633,20 @@ int AVSyncronizer::readThread() {
 //                            (double) (mPlayerState->startTime != AV_NOPTS_VALUE
 //                                      ? mPlayerState->startTime : 0) / 1000000
 //                            <= ((double) mPlayerState->duration / 1000000);
-        if (pkt->stream_index == mPlayerState->mAudioDecoder->streamIndex) {
-            mPlayerState->mAudioDecoder->packetQueue->push(pkt1);
+        if (packet->stream_index == mPlayerState->mAudioDecoder->streamIndex) {
+            mPlayerState->mAudioDecoder->packetQueue->push(packet);
             LOGI("audio packet---");
             //todo 下面这个分支的所有条件的含义
-        } else if (pkt->stream_index == mPlayerState->mVideoDecoder->streamIndex) {
+        } else if (packet->stream_index == mPlayerState->mVideoDecoder->streamIndex) {
 //            packet_queue_put(&is->videoq, pkt);
-            mPlayerState->mVideoDecoder->packetQueue->push(pkt1);
+            mPlayerState->mVideoDecoder->packetQueue->push(packet);
             LOGI("video packet---");
 
-        } else if (pkt->stream_index == mPlayerState->mSubtitleDecoder->streamIndex) {
+        } else if (packet->stream_index == mPlayerState->mSubtitleDecoder->streamIndex) {
 //            packet_queue_put(&is->subtitleq, pkt);
-            mPlayerState->mSubtitleDecoder->packetQueue->push(pkt1);
-        } else {
-            av_packet_unref(pkt);
+            mPlayerState->mSubtitleDecoder->packetQueue->push(packet);
         }
+//        av_packet_free(&packet);
 
 //        pkt_in_play_range = mPlayerState->duration == AV_NOPTS_VALUE ||
 //                            (pkt_ts -

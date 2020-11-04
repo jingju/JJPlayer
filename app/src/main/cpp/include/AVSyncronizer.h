@@ -7,14 +7,11 @@
 
 
 #include <sys/types.h>
-#include "VideoFrameQueue.h"
-#include "AudioFrameQueue.h"
-#include "AudioFrame.h"
-#include "VideoFrame.h"
 #include "Decoder.h"
 #include <string>
 #include "PlayerState.h"
 #include "audiorender/OpenSLESAudioController.h"
+#include "Remuxer.h"
 #define LOG_TAG "AVSyncronizer"
 
 
@@ -31,6 +28,10 @@ private:
     std::mutex mutex;
     //todo 时钟
     int streamComponentOpen(PlayerState *playerState,AVMediaType type,int streamIndex);
+    Remuxer *remuxer;
+    int EndOfFile=0;
+
+
 
 public:
     AVSyncronizer(PlayerState *playerState);

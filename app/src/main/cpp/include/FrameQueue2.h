@@ -6,7 +6,7 @@
 #define JJPLAYER_FRAMEQUEUE2_H
 
 extern "C"{
-#include "../thirdlib/ffmpeg/include/libavutil/frame.h"
+#include "libavutil/frame.h"
 };
 
 #include <mutex>

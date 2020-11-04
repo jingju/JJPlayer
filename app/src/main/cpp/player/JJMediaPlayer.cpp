@@ -80,10 +80,12 @@ void JJMediaPlayer::setDataSource(JNIEnv *env, jstring path, jobjectArray keys,
     mPlayerState->setSourcePath(sourcePath);
 }
 
-void JJMediaPlayer::setDestFilePath(JNIEnv *env, jstring destYuvPath,jstring destPcmPath) {
+void JJMediaPlayer::setDestFilePath(JNIEnv *env, jstring destYuvPath,jstring destPcmPath,jstring outMediaFilePath) {
     const char * yuvPath = env->GetStringUTFChars(destYuvPath, NULL);
     const char * pcmPath = env->GetStringUTFChars(destPcmPath, NULL);
+    const char * mediaFilePath = env->GetStringUTFChars(outMediaFilePath, NULL);
     mPlayerState->setDestYuvFilePath(yuvPath,pcmPath);
+    mPlayerState->setDestMediaPath(mediaFilePath);
 }
 
 

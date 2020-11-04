@@ -26,7 +26,7 @@ int PacketQueue::abort() {
     mCondition.notify_all();//唤醒阻塞
 }
 
-int PacketQueue::push(AVPacket packet) {
+int PacketQueue::push(AVPacket* packet) {
     if(abort_request){
         return -1;
     }
@@ -41,11 +41,15 @@ int PacketQueue::push(AVPacket packet) {
  * @return
  */
 int PacketQueue::pushNullPackets(int streamIndex) {
-    AVPacket pkt,*pkt1=&pkt;
-    av_init_packet(pkt1);
-    pkt1->data = NULL;
-    pkt1->size = 0;
-    pkt1->stream_index = streamIndex;
+//    AVPacket pkt,*pkt1=&pkt;
+//    av_init_packet(pkt1);
+//    pkt1->data = NULL;
+//    pkt1->size = 0;
+//    pkt1->stream_index = streamIndex;
+    AVPacket *pkt=av_packet_alloc();
+    pkt->stream_index=streamIndex;
+    pkt->data=NULL;
+    pkt->size=0;
     return push( pkt);
 }
 
@@ -55,9 +59,9 @@ int PacketQueue::pushNullPackets(int streamIndex) {
 void PacketQueue::flush() {
     std::lock_guard<std::mutex> lk(mMutex);
     for (int i = 0; i < mQueue.size(); ++i) {
-        AVPacket packet =mQueue.front();
+        AVPacket* packet =mQueue.front();
         mQueue.pop();
-        av_packet_unref(&packet);
+        av_packet_unref(packet);
     }
     duration=0;
 }
@@ -70,7 +74,7 @@ AVPacket* PacketQueue::waitAndPop() {
     mCondition.wait(lk, [&] { return !mQueue.empty(); });
     auto res = mQueue.front();
     mQueue.pop();
-    return &res;
+    return res;
 }
 
 

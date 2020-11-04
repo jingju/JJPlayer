@@ -3,7 +3,7 @@
 
 # Sets the minimum version of CMake required to build the native library.
 
-cmake_minimum_required(VERSION 3.4.1)
+cmake_minimum_required(VERSION 3.10.2)
 #定义一个变量并给变量
 set(PATH_TO_MEDIACORE ${CMAKE_SOURCE_DIR}/src/main/cpp)
 # 将符合表达式的文件列表存储到变量中
@@ -44,12 +44,22 @@ add_library(
         IMPORTED
 
 )
+
 SET_TARGET_PROPERTIES(
         avcodec
         PROPERTIES IMPORTED_LOCATION
         ${PROJECT_SOURCE_DIR}/src/main/jni/${ANDROID_ABI}/libavcodec.so
 )
 
+SET_TARGET_PROPERTIES(avcodec PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES
+        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/ffmpeg/${ANDROID_ABI})
+
+#TARGET_INCLUDE_DIRECTORIES(
+#        avcodec
+#        PRIVATE
+#        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/ffmpeg/${ANDROID_ABI}/include
+#)
 #avformat
 add_library(
         avformat
@@ -63,7 +73,14 @@ SET_TARGET_PROPERTIES(
         PROPERTIES IMPORTED_LOCATION
         ${PROJECT_SOURCE_DIR}/src/main/jni/${ANDROID_ABI}/libavformat.so
 )
-
+#TARGET_INCLUDE_DIRECTORIES(
+#        avformat
+#        PRIVATE
+#        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/ffmpeg/${ANDROID_ABI}/include
+#)
+SET_TARGET_PROPERTIES(avformat PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES
+        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/ffmpeg/${ANDROID_ABI})
 #avutil
 add_library(
         avutil
@@ -77,8 +94,15 @@ SET_TARGET_PROPERTIES(
         PROPERTIES IMPORTED_LOCATION
         ${PROJECT_SOURCE_DIR}/src/main/jni/${ANDROID_ABI}/libavutil.so
 )
+#TARGET_INCLUDE_DIRECTORIES(
+#        avutil
+#        PRIVATE
+#        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/ffmpeg/${ANDROID_ABI}/include
+#)
 
-
+SET_TARGET_PROPERTIES(avutil PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES
+        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/ffmpeg/${ANDROID_ABI})
 add_library(
         avfilter
 
@@ -91,6 +115,14 @@ SET_TARGET_PROPERTIES(
         PROPERTIES IMPORTED_LOCATION
         ${PROJECT_SOURCE_DIR}/src/main/jni/${ANDROID_ABI}/libavfilter.so
 )
+#TARGET_INCLUDE_DIRECTORIES(
+#        avfilter
+#        PRIVATE
+#        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/ffmpeg/${ANDROID_ABI}/include
+#)
+SET_TARGET_PROPERTIES(avfilter PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES
+        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/ffmpeg/${ANDROID_ABI})
 add_library(
         swresample
 
@@ -103,6 +135,14 @@ SET_TARGET_PROPERTIES(
         PROPERTIES IMPORTED_LOCATION
         ${PROJECT_SOURCE_DIR}/src/main/jni/${ANDROID_ABI}/libswresample.so
 )
+#TARGET_INCLUDE_DIRECTORIES(
+#        swresample
+#        PRIVATE
+#        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/ffmpeg/${ANDROID_ABI}/include
+#)
+SET_TARGET_PROPERTIES(swresample PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES
+        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/ffmpeg/${ANDROID_ABI})
 add_library(
         swscale
 
@@ -116,7 +156,14 @@ SET_TARGET_PROPERTIES(
         PROPERTIES IMPORTED_LOCATION
         ${PROJECT_SOURCE_DIR}/src/main/jni/${ANDROID_ABI}/libswscale.so
 )
-
+#TARGET_INCLUDE_DIRECTORIES(
+#        swscale
+#        PRIVATE
+#        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/ffmpeg/${ANDROID_ABI}/include
+#)
+SET_TARGET_PROPERTIES(swscale PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES
+        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/ffmpeg/${ANDROID_ABI})
 add_library(
         postproc
 
@@ -130,6 +177,14 @@ SET_TARGET_PROPERTIES(
         PROPERTIES IMPORTED_LOCATION
         ${PROJECT_SOURCE_DIR}/src/main/jni/${ANDROID_ABI}/libpostproc.so
 )
+#TARGET_INCLUDE_DIRECTORIES(
+#        postproc
+#        PRIVATE
+#        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/ffmpeg/${ANDROID_ABI}/include
+#)
+SET_TARGET_PROPERTIES(postproc PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES
+        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/ffmpeg/${ANDROID_ABI})
 add_library(
         x264
 
@@ -143,6 +198,15 @@ SET_TARGET_PROPERTIES(
         PROPERTIES IMPORTED_LOCATION
         ${PROJECT_SOURCE_DIR}/src/main/jni/${ANDROID_ABI}/libx264.a
 )
+#TARGET_INCLUDE_DIRECTORIES(
+#        x264
+#        PRIVATE
+#        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/x264/${ANDROID_ABI}
+#)
+SET_TARGET_PROPERTIES(x264 PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES
+        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/x264/${ANDROID_ABI})
+
 add_library(
         fdk-aac
 
@@ -150,11 +214,34 @@ add_library(
 
         IMPORTED
 )
-
 SET_TARGET_PROPERTIES(
         fdk-aac
         PROPERTIES IMPORTED_LOCATION
         ${PROJECT_SOURCE_DIR}/src/main/jni/${ANDROID_ABI}/libfdk-aac.a)
+#TARGET_INCLUDE_DIRECTORIES(
+#        fdk-aac
+#        PRIVATE
+#        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/fdkaac/${ANDROID_ABI}
+#)
+SET_TARGET_PROPERTIES(
+        fdk-aac
+        PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
+        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/fdkaac/${ANDROID_ABI})
+add_library(
+        vpx
+
+        STATIC
+
+        IMPORTED
+)
+SET_TARGET_PROPERTIES(
+        vpx
+        PROPERTIES IMPORTED_LOCATION
+        ${PROJECT_SOURCE_DIR}/src/main/jni/${ANDROID_ABI}/libvpx.a)
+SET_TARGET_PROPERTIES(
+        fdk-aac
+        PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
+        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/vpx/${ANDROID_ABI})
 add_library(
         sox
 
@@ -189,9 +276,6 @@ include_directories(
         ${PATH_TO_MEDIACORE}/include/videorender
         ${PATH_TO_MEDIACORE}/include/soundtouch
         ${PATH_TO_MEDIACORE}/include/remux
-        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/ffmpeg/include
-        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/x264/include
-        ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/fdkaac/include
         ${PROJECT_SOURCE_DIR}/src/main/cpp/thirdlib/sox/include
 )
 # Searches for a specified prebuilt library and stores the path as a

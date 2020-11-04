@@ -127,6 +127,9 @@ public:
 
     const char *mDestYuvFilePath= nullptr;
     const char *mDestPcmFilePath= nullptr;
+    const char *mDestMedianPath= nullptr;
+
+    int endOfFile=0;
 public:
     /**
      *
@@ -157,6 +160,9 @@ public:
     void syncClockToSlave(Clock *c ,Clock *slave);
 
     void setDestYuvFilePath(const char *yuvPath,const char *pcmPath);
+    void setDestMediaPath(const char *outMediaPath);
+    void setEndFile(int isEnd);
+
 
 };
 

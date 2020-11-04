@@ -7,12 +7,12 @@
 
 #include <string>
 #include <thread>
-#include "FrameQueue.h"
 #include "PacketQueue.h"
 #include <FrameQueue2.h>
 #include <fstream>
 #include <iostream>
 #include "CommonTools.h"
+#include "AVFrameQueue.h"
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
@@ -55,13 +55,12 @@ public:
     //todo=====new ===== 删除上面多余的
     PacketQueue *packetQueue;
     std::thread decodeThread;
-    FrameQueue *frameQueue;
 
     bool abortRequest;//停止解码
 
 
     //todo 新加的转换后的统一的
-    FrameQueue2 *mFrameQueue2;
+    FrameQueue2 *mDecodeFrameQueue2;
 
     //audio
     int64_t next_pts = 0;
@@ -73,6 +72,10 @@ public:
     const char *destDataFilePath = nullptr;
 
     ofstream outFileStream;
+
+
+    AVFrameQueue *mEncodeFrameQueue;
+    int endOfFile=0;
 
 public:
     Decoder();
