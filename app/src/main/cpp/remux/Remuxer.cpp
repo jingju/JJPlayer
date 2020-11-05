@@ -3,7 +3,18 @@
 //
 
 #include "Remuxer.h"
-
+static void log_callback_test2(void *ptr, int level, const char *fmt, va_list vl)
+{
+    va_list vl2;
+    char *line = static_cast<char *>(malloc(128 * sizeof(char)));
+    static int print_prefix = 1;
+    va_copy(vl2, vl);
+    av_log_format_line(ptr, level, fmt, vl2, line, 128, &print_prefix);
+    va_end(vl2);
+    line[127] = '\0';
+    LOGE("%s", line);
+    free(line);
+}
 Remuxer::Remuxer(PlayerState *playerState) {
     mPlayerState = playerState;
 }
@@ -11,6 +22,10 @@ Remuxer::Remuxer(PlayerState *playerState) {
 Remuxer::~Remuxer() {}
 
 int Remuxer::start(const char *mediaType, const char *outFileName) {
+    //todo 测试log
+
+    av_log_set_callback(log_callback_test2);
+
     /**
      * 创建基本全局格式
      *
@@ -150,19 +165,11 @@ void Remuxer::writeTrailer(OutputStream &video_st, OutputStream &audio_st,
 int Remuxer::addStream(OutputStream &outSream, AVCodec **codec,
                        AVCodecID codecId) {
     //todo 测试
-    avcodec_register_all();
-   const AVCodec *codec2=NULL;
-   AVCodec *codec3=NULL;
-
-//    while(av_codec_next(codec2)!=NULL){
-//       AVCodec *codec3= av_codec_next(codec2);
-//        LOGI("find codec '%d'\n",codec2->id);
-//
-//    };
-
-    while((codec2=av_codec_next(codec2))!=NULL){
-        LOGI("find codec '%s'\n",codec2->name);
-    }
+//    avcodec_register_all();
+//   const AVCodec *codec2=NULL;
+//    while((codec2=av_codec_next(codec2))!=NULL){
+//        LOGI("find codec '%s'\n",codec2->name);
+//    }
 
 
 
@@ -178,7 +185,7 @@ int Remuxer::addStream(OutputStream &outSream, AVCodec **codec,
         return -1;
     }
 
-    outSream.st = avformat_new_stream(fmtContext, NULL);
+    outSream.st = avformat_new_stream(fmtContext, *codec);
     if (!outSream.st) {
         fprintf(stderr, "Could not allocate stream\n");
         return -1;
@@ -222,9 +229,6 @@ int Remuxer::addStream(OutputStream &outSream, AVCodec **codec,
 
         case AVMEDIA_TYPE_VIDEO:
             LOGI("add stream video");
-            //todo ========!!!!!!!!!!!!!!!=================outPaht 为NULL
-            c->codec_id = codecId;
-
             c->bit_rate = 400000;
             /* Resolution must be a multiple of two. */
             c->width = 352;
@@ -236,7 +240,7 @@ int Remuxer::addStream(OutputStream &outSream, AVCodec **codec,
             outSream.st->time_base = (AVRational) {1, STREAM_FRAME_RATE};//时间基为帧率分之一
             c->time_base = outSream.st->time_base;//CodecContex的时间基，设置为流的时间基
 
-            c->gop_size = 12; /* emit one intra frame every twelve frames at moutStream */
+//            c->gop_size = 12; /* emit one intra frame every twelve frames at moutStream */
             c->pix_fmt = STREAM_PIX_FMT;
             if (c->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
                 /* just for testing, we also add B-frames */
@@ -271,13 +275,14 @@ void Remuxer::closeStream(AVFormatContext *pContext, OutputStream *outStream) {
 
 int Remuxer::openVideo(AVCodec *codec,
                        AVDictionary *optArg) {
+
     LOGI("open video");
     int ret;
     AVCodecContext *c = videoOutStream.enc;
     AVDictionary *opt = NULL;
 
     av_dict_copy(&opt, optArg, 0);
-
+//    c->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
     /* open the codec */
     ret = avcodec_open2(c, codec, &opt);
     av_dict_free(&opt);
@@ -635,6 +640,7 @@ bool Remuxer::audioWrite() {
     LOGD("start write audio ");
 
     AVCodecContext *codecContext = mPlayerState->mAudioDecoder->codecContext;
+    //todo 这里有问题，不应改有路径，直接在流上写
     ifstream inStream(audioPath, ios::binary);
     if (inStream.is_open()) {
         while (true) {

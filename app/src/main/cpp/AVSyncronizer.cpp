@@ -19,6 +19,7 @@ void AVSyncronizer::initDecoder() {
  */
 void AVSyncronizer::streamOpen() {
     av_register_all();
+    avcodec_register_all();
     /**
     * todo 初始化 VideoState 类，记录player的一些状态
     */
@@ -56,8 +57,8 @@ void AVSyncronizer::streamOpen() {
     //todo 初始化解码器
     initDecoder();
     //todo 初始化转封装工具类
-//    remuxer= new Remuxer(mPlayerState);
-//    remuxer->start("",mPlayerState->mDestMedianPath);
+    remuxer= new Remuxer(mPlayerState);
+    remuxer->start("",mPlayerState->mDestMedianPath);
 //    //todo 初始化video audio 和 ext 实际时间的时钟
     mPlayerState->initAllClock();
     //todo 初始化视频刷新线程
