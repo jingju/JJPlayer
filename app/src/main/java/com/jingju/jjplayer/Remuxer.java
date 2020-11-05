@@ -12,8 +12,8 @@ public class Remuxer {
     }
 
     public void remux(String mediaType){
-        nRemux(mediaType,outPath);
+        nRemux(mediaType, outPath);
     }
 
-    private   native void  nRemux(String mediaType,String outputPath);
+    private native void nRemux(String mediaType,String outputPath);
 }

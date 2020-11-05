@@ -47,14 +47,6 @@ public class VideoActivity extends AppCompatActivity implements PermissionCallba
         // TODO: 2020/5/11 获取到video path
         mVideoView.setDestFilePath(mOutYuvUri,mOutPcmUri,mOutFilePath);
         mVideoView.setVideoPath(uri);
-
-
-
-
-
-
-
-
     }
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
