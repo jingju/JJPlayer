@@ -66,7 +66,8 @@ public:
     PlayerState *mPlayerState;
     bool isStop = false;
 
-    AVFormatContext *fmtContext = nullptr;
+    AVFormatContext *ifmtContext = nullptr;
+    AVFormatContext *ofmtContext = nullptr;
     OutputStream videoOutStream = {0};
     OutputStream audioOutStream = {0};
     mutex mMutext;
@@ -75,6 +76,8 @@ public:
     bool isPendingAudio=false;//编码缓冲区未填man
 
 public:
+
+    Remuxer();
 
     Remuxer(PlayerState *playerState);
 

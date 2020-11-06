@@ -7,13 +7,15 @@ import android.os.Environment;
  *
  */
 public class Remuxer {
-    private String outPath= Environment.getExternalStorageDirectory().getAbsolutePath()+"/playertest/out.mp4";
+    private String inPath= Environment.getExternalStorageDirectory().getAbsolutePath()+"/playertest/playertest.mp4";
+    private String outPath= Environment.getExternalStorageDirectory().getAbsolutePath()+"/playertest/output.flv";
+
     public Remuxer() {
     }
 
     public void remux(String mediaType){
-        nRemux(mediaType,outPath);
+        nRemux(inPath, outPath);
     }
 
-    private   native void  nRemux(String mediaType,String outputPath);
+    private native void nRemux(String inputPath, String outputPath);
 }

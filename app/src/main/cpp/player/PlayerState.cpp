@@ -151,9 +151,9 @@ void PlayerState::syncClockToSlave(Clock *c, Clock *slave) {
         setClock(c, slave_clock, slave->serial);
 }
 
-void PlayerState::setDestYuvFilePath(const char *yuvFilePath,const char *pcmFilePath) {
-    mDestYuvFilePath=yuvFilePath;
-    mDestPcmFilePath=pcmFilePath;
+void PlayerState::setDestYuvFilePath(const char *yuvFilePath, const char *pcmFilePath) {
+    mDestYuvFilePath = yuvFilePath;
+    mDestPcmFilePath = pcmFilePath;
 
 }
 

@@ -4,13 +4,16 @@
 
 #include "Remuxer.h"
 
+Remuxer::Remuxer() {
+}
+
 Remuxer::Remuxer(PlayerState *playerState) {
     mPlayerState = playerState;
 }
 
 Remuxer::~Remuxer() {}
 
-int Remuxer::remux(const char *mediaType, const char *outFileName) {
+int Remuxer::remux(const char *inFileName, const char *outFileName) {
     /**
      * 创建基本全局格式
      *
@@ -19,7 +22,6 @@ int Remuxer::remux(const char *mediaType, const char *outFileName) {
      * 写如到对应的流
      *
      */
-
     av_register_all();
     OutputStream video_st = {0}, audio_st = {0};
     AVOutputFormat *outFmt;
@@ -29,46 +31,81 @@ int Remuxer::remux(const char *mediaType, const char *outFileName) {
     int have_video = 0, have_audio = 0;
     int encode_video = 0, encode_audio = 0;
     AVDictionary *opt = NULL;
+    AVPacket pkt;
 
-
-    avformat_alloc_output_context2(&fmtContext, NULL, NULL, outFileName);
-
-    if (!fmtContext) {
-        printf("Could not deduce output format from file extension: using MPEG.\n");
-        avformat_alloc_output_context2(&fmtContext, NULL, "mpeg", outFileName);
+    ret = avformat_open_input(&ifmtContext, inFileName, 0, 0);
+    if (ret < 0) {
+        LOGE("avformat_open_input error");
+        return -1;
     }
-    if (!fmtContext)
-        return -1;//失败
 
+    ret = avformat_find_stream_info(ifmtContext, 0);
+    if (ret < 0) {
+        LOGE("avformat_find_stream_info error");
+        return -1;
+    }
+    av_dump_format(ifmtContext, 0, inFileName, 0);
 
-    outFmt = fmtContext->oformat;
+    ret = avformat_alloc_output_context2(&ofmtContext, NULL, NULL, outFileName);
+    if (ret < 0) {
+        LOGE("avformat_alloc_output_context2 error, result = ", ret);
+        return -1;
+    }
+
+    if (!ofmtContext) {
+        printf("Could not deduce output format from file extension: using MPEG.\n");
+        avformat_alloc_output_context2(&ofmtContext, NULL, "mpeg", outFileName);
+    }
+    if (!ofmtContext)
+        return -1; //失败
+
+    outFmt = ofmtContext->oformat;
+    for (int i=0; i < ifmtContext->nb_streams; i++) {
+        AVStream *inStream = ifmtContext->streams[i];
+        AVStream *outStream = avformat_new_stream(ofmtContext, inStream->codec->codec);
+        if (!outStream) {
+            LOGE("avformat_new_stream error");
+            return -1;
+        }
+
+        ret = avcodec_copy_context(outStream->codec, inStream->codec);
+        if (ret < 0) {
+            LOGE("avcodec_copy_context error");
+            return -1;
+        }
+
+        outStream->codec->codec_tag = 0;
+        if (ofmtContext->oformat->flags & AVFMT_GLOBALHEADER) {
+            outStream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+        }
+    }
 
     /* Add the audio and video streams using the default format codecs
      * and initialize the codecs. */
-    if (outFmt->video_codec != AV_CODEC_ID_NONE) {
-        addStream(videoOutStream, &video_codec, outFmt->video_codec);
-        have_video = 1;
-        encode_video = 1;
-    }
-    if (outFmt->audio_codec != AV_CODEC_ID_NONE) {
-        addStream(audioOutStream, &audio_codec, outFmt->audio_codec);
-        have_audio = 1;
-        encode_audio = 1;
-    }
+//    if (outFmt->video_codec != AV_CODEC_ID_NONE) {
+//        addStream(videoOutStream, &video_codec, AV_CODEC_ID_MPEG4);
+//        have_video = 1;
+//        encode_video = 1;
+//    }
+//    if (outFmt->audio_codec != AV_CODEC_ID_NONE) {
+//        addStream(audioOutStream, &audio_codec, AV_CODEC_ID_MP3);
+//        have_audio = 1;
+//        encode_audio = 1;
+//    }
 
     /* Now that all the parameters are set, we can open the audio and
      * video codecs and allocate the necessary encode buffers. */
-    if (have_video)
-        openVideo(video_codec, opt);
+//    if (have_video)
+//        openVideo(video_codec, opt);
+//
+//    if (have_audio)
+//        openAudio(audio_codec, opt);
 
-    if (have_audio)
-        openAudio(audio_codec, opt);
-
-    av_dump_format(fmtContext, 0, outFileName, 1);
+    av_dump_format(ofmtContext, 0, outFileName, 1);
 
     /* open the output file, if needed */
     if (!(outFmt->flags & AVFMT_NOFILE)) {
-        ret = avio_open(&fmtContext->pb, outFileName, AVIO_FLAG_WRITE);
+        ret = avio_open(&ofmtContext->pb, outFileName, AVIO_FLAG_WRITE);
         if (ret < 0) {
             fprintf(stderr, "Could not open '%s': %s\n", outFileName,
                     av_err2str(ret));
@@ -77,48 +114,58 @@ int Remuxer::remux(const char *mediaType, const char *outFileName) {
     }
 
     /* Write the stream header, if any. */
-    ret = avformat_write_header(fmtContext, &opt);
+    ret = avformat_write_header(ofmtContext, &opt);
     if (ret < 0) {
         fprintf(stderr, "Error occurred when opening output file: %s\n",
                 av_err2str(ret));
         return -1;
     }
 
-    messageThread = thread(&Remuxer::messageLoop, this);
-    messageThread.detach();
+    int frame_index = 0;
+    while (1) {
+        AVStream *in_stream, *out_stream;
+        //获取一个AVPacket（Get an AVPacket）
+        ret = av_read_frame(ifmtContext, &pkt);
+        if (ret < 0)
+            break;
+        in_stream  = ifmtContext->streams[pkt.stream_index];
+        out_stream = ofmtContext->streams[pkt.stream_index];
 
-    if (encode_video) {
-        videoWriteThread = thread(&Remuxer::videoWrite, this);
-        videoWriteThread.detach();
-    }
-//
-    if (encode_audio) {
-        audioWriteThread = thread(&Remuxer::audioWrite, this);
-        audioWriteThread.detach();
+        // 拷贝
+        pkt.pts = av_rescale_q_rnd(pkt.pts, in_stream->time_base, out_stream->time_base, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+        pkt.dts = av_rescale_q_rnd(pkt.dts, in_stream->time_base, out_stream->time_base, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+        pkt.duration = av_rescale_q(pkt.duration, in_stream->time_base, out_stream->time_base);
+        pkt.pos = -1;
+        // 写入
+        ret = av_interleaved_write_frame(ofmtContext, &pkt);
+        if (ret < 0) {
+            LOGE( "av_interleaved_write_frame error, result = %d \n", ret);
+            break;
+        }
+        LOGI("Write %8d frames to output file \n", frame_index);
+        av_free_packet(&pkt);
+        frame_index++;
     }
 
-    //todo 将读取的数据循环写入
-//    while (encode_video || encode_audio) {
-//        /* select the stream to encode */
-////                if (encode_video &&
-////                    (!encode_audio || av_compare_ts(video_st.next_pts, video_st.enc->time_base,
-////                                                    audio_st.next_pts, audio_st.enc->time_base) <= 0)) {//vido.next_pts before audio next
-////                        encode_video = !writeVideoFrame(outFmtContex, &video_st);
-////                } else {
-////                        encode_audio = !writeAudioFrame(outFmtContex, &audio_st);
-////                }
+//    messageThread = thread(&Remuxer::messageLoop, this);
+//    messageThread.detach();
 //
-//        if (encode_video) {
-//            //todo 写入视频 开启单独的线程，写视频
+//    if (encode_video) {
+//        videoWriteThread = thread(&Remuxer::videoWrite, this);
+//        videoWriteThread.detach();
+//    }
 //
-//
-//        } else if (encode_audio) {
-//            //todo 写入音频 开启单独的线程，写音频
-//
-//        }
+//    if (encode_audio) {
+//        audioWriteThread = thread(&Remuxer::audioWrite, this);
+//        audioWriteThread.detach();
 //    }
 
+    // 写文件尾
+    av_write_trailer(ofmtContext);
 
+    // 释放输入文件和输出文件的上下文
+    avformat_close_input(&ifmtContext);
+    avformat_free_context(ofmtContext);
 
     //todo 这里的数据留在回调函数里完成
     //======================================================================
@@ -133,20 +180,20 @@ int Remuxer::remux(const char *mediaType, const char *outFileName) {
 
 void Remuxer::writeTrailer(OutputStream &video_st, OutputStream &audio_st,
                            int have_video, int have_audio) {
-    av_write_trailer(fmtContext);
+    av_write_trailer(ofmtContext);
 
     /* Close each codec. */
     if (have_video)
-        closeStream(fmtContext, &video_st);
+        closeStream(ofmtContext, &video_st);
     if (have_audio)
-        closeStream(fmtContext, &audio_st);
+        closeStream(ofmtContext, &audio_st);
 
-    if (!(fmtContext->oformat->flags & AVFMT_NOFILE))
+    if (!(ofmtContext->oformat->flags & AVFMT_NOFILE))
         /* Close the output file. */
-        avio_closep(&fmtContext->pb);
+        avio_closep(&ofmtContext->pb);
 
     /* free the stream */
-    avformat_free_context(fmtContext);
+    avformat_free_context(ofmtContext);
 }
 
 int Remuxer::addStream(OutputStream &outSream, AVCodec **codec,
@@ -163,12 +210,12 @@ int Remuxer::addStream(OutputStream &outSream, AVCodec **codec,
         return -1;
     }
 
-    outSream.st = avformat_new_stream(fmtContext, NULL);
+    outSream.st = avformat_new_stream(ofmtContext, NULL);
     if (!outSream.st) {
         fprintf(stderr, "Could not allocate stream\n");
         return -1;
     }
-    outSream.st->id = fmtContext->nb_streams - 1;
+    outSream.st->id = ofmtContext->nb_streams - 1;
     c = avcodec_alloc_context3(*codec);
     if (!c) {
         fprintf(stderr, "Could not alloc an encoding context\n");
@@ -240,7 +287,7 @@ int Remuxer::addStream(OutputStream &outSream, AVCodec **codec,
     }
 
     /* Some formats want stream headers to be separate. */
-    if (fmtContext->oformat->flags & AVFMT_GLOBALHEADER)
+    if (ofmtContext->oformat->flags & AVFMT_GLOBALHEADER)
         c->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
 
     return 1;
@@ -657,7 +704,7 @@ bool Remuxer::audioWrite() {
             }
             frame->pts = pts;
             LOGI("write audio frame");
-            bool ret = writeAudioFrame(fmtContext, frame);
+            bool ret = writeAudioFrame(ofmtContext, frame);
             pts++;
             if (!ret) {
                 if (isPendingAudio) {//
@@ -779,7 +826,7 @@ int Remuxer::writeFrame(AVRational *timeBase, AVStream *stream,
     pkt->stream_index = stream->index;
 
     /* Write the compressed frame to the media file. */
-//    log_packet(fmtContext, pkt);
-    return av_interleaved_write_frame(fmtContext, pkt);
+//    log_packet(ofmtContext, pkt);
+    return av_interleaved_write_frame(ofmtContext, pkt);
     return 0;
 }

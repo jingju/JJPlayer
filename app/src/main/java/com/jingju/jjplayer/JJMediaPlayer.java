@@ -245,8 +245,8 @@ public class JJMediaPlayer implements IMediaPlayer{
     }
 
     @Override
-    public void setDestFilePath(String path, String pcmPath) throws IOException, IllegalArgumentException, SecurityException, IllegalStateException {
-        mSetDestYuvPath(path,pcmPath);
+    public void setDestFilePath(String yuvPath, String pcmPath) throws IOException, IllegalArgumentException, SecurityException, IllegalStateException {
+        mSetDestYuvPath(yuvPath, pcmPath);
     }
 
     public native void nSetVideoSurface(Surface surface);

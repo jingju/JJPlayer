@@ -42,15 +42,8 @@ public class VideoActivity extends AppCompatActivity implements PermissionCallba
 
         mVideoView = findViewById(R.id.video_view);
         // TODO: 2020/5/11 获取到video path
-        mVideoView.setDestFilePath(mOutYuvUri,mOutPcmUri);
+        mVideoView.setDestFilePath(mOutYuvUri, mOutPcmUri);
         mVideoView.setVideoPath(uri);
-
-
-
-
-
-
-
 
     }
     @Override
@@ -67,7 +60,6 @@ public class VideoActivity extends AppCompatActivity implements PermissionCallba
             case Constant.PERMISSION_READ_STORAGE_REQUEST_CODE:
                 switch (state){
                     case SUCCESS:
-
                         break;
                     case DENIED:
                     case NEVER_ASK_AGAIN:
@@ -75,7 +67,6 @@ public class VideoActivity extends AppCompatActivity implements PermissionCallba
                     case EXPLAIN:
                         break;
                 }
-
                 break;
             default:
                 break;

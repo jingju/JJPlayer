@@ -75,25 +75,24 @@ JNIEXPORT void JNICALL
 Java_com_jingju_jjplayer_JJMediaPlayer_mSetDestYuvPath(JNIEnv *env, jobject thiz,
                                                        jstring yuvPath,jstring pcmPath) {
     // TODO: implement mSetDestYuvPath()
-    player->setDestFilePath(env, yuvPath,pcmPath);
+    player->setDestFilePath(env, yuvPath, pcmPath);
 
 }
 
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_jingju_jjplayer_Remuxer_nRemux(JNIEnv *env, jobject thiz, jstring media_type,jstring outpath) {
-    // TODO: implement nRemux()
-    const char * mediaType = env->GetStringUTFChars(media_type, NULL);
-    const char * outPath = env->GetStringUTFChars(outpath, NULL);
-    if(NULL!=player){
-        remuxer=new Remuxer(player->mPlayerState);
+Java_com_jingju_jjplayer_Remuxer_nRemux(JNIEnv *env, jobject thiz, jstring inpath, jstring outpath) {
+    const char* inPath = env->GetStringUTFChars(inpath, NULL);
+    const char* outPath = env->GetStringUTFChars(outpath, NULL);
+    if (NULL != player) {
+        remuxer = new Remuxer(player->mPlayerState);
         remuxer->setVideoPaht(player->mPlayerState->mDestYuvFilePath);
         remuxer->setAudioPath(player->mPlayerState->mDestPcmFilePath);
-//    remuxer->setOutputPath(outPath);
-        //todo 文件路径
-        remuxer->remux(mediaType,outPath);
+        // 设置转封装路径
+        remuxer->remux(inPath, outPath);
+    } else {
+        remuxer = new Remuxer();
+        remuxer->remux(inPath, outPath);
     }
 }
-
-//

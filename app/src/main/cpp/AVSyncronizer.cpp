@@ -175,7 +175,6 @@ AVSyncronizer::streamComponentOpen(PlayerState *playerState, AVMediaType type, i
             int ret = mAudioController->open(codecContext->channel_layout, codecContext->channels,
                                              codecContext->sample_rate);
             //todo 初始化解码器和解码线程
-            //本
             if (ret < 0) {
                 //todo 重新设置同步模式为按照视频时间同步
 
@@ -183,9 +182,8 @@ AVSyncronizer::streamComponentOpen(PlayerState *playerState, AVMediaType type, i
                 mAudioController->start();
                 mPlayerState->mAudioDecoder->streamIndex = streamIndex;
                 mPlayerState->mAudioDecoder->stream = formatContext->streams[streamIndex];
-//            mAudioDecoder->init(codecContext,&mPlayerState->mAudioQueue);
-                //子类调用父类方法
-                mPlayerState->mAudioDecoder->init(codecContext,mPlayerState->mDestPcmFilePath);
+                // 子类调用父类方法
+                mPlayerState->mAudioDecoder->init(codecContext, mPlayerState->mDestPcmFilePath);
                 mPlayerState->mAudioDecoder->start();
             }
         }
@@ -193,16 +191,15 @@ AVSyncronizer::streamComponentOpen(PlayerState *playerState, AVMediaType type, i
         case AVMEDIA_TYPE_VIDEO:
             mPlayerState->mVideoDecoder->streamIndex = streamIndex;
             mPlayerState->mVideoDecoder->stream = formatContext->streams[streamIndex];
-            mPlayerState->mVideoDecoder->init(codecContext,mPlayerState->mDestYuvFilePath);
-//            mVideoDecoder->init(codecContext,&mPlayerState->mVideQueue);
+            mPlayerState->mVideoDecoder->init(codecContext, mPlayerState->mDestYuvFilePath);
             mPlayerState->mVideoDecoder->start();
             break;
         default:
             break;
     }
-    //todo 如果不调用goto out 会顺序执行，codecContex释放，导致后续无法使用。
+    // 如果不调用goto out 会顺序执行，codecContex释放，导致后续无法使用。
     goto out;
-    //todo 失败时释放资源
+    // 失败时释放资源
     fail:
     avcodec_free_context(&codecContext);
     out:
